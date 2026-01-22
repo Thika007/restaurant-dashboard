@@ -6,6 +6,7 @@ import HistorySection from './components/HistorySection';
 import { LayoutDashboard, History, Settings, Calendar, Download, Languages } from 'lucide-react';
 import { format } from 'date-fns';
 import { translations } from './constants/translations';
+import { fetchTodayStats, fetchSalesTrend, fetchTopItems, fetchOrderTypes, fetchHistory, fetchHistoryStats, fetchHistoryTrend, fetchHistoryTopItems, fetchHistoryOrderTypes } from './services/api';
 
 function App() {
   const [activeTab, setActiveTab] = useState('real-time');
@@ -13,7 +14,70 @@ function App() {
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [lang, setLang] = useState('en');
 
+  // Dashboard Data State
+  const [stats, setStats] = useState(null);
+  const [historyStats, setHistoryStats] = useState(null);
+  const [historyChartsData, setHistoryChartsData] = useState({ trend: [], topItems: [], orderTypes: [] });
+  const [chartsData, setChartsData] = useState({ trend: [], topItems: [], orderTypes: [] });
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const t = translations[lang];
+
+  React.useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        setLoading(true);
+        const [statsData, trendData, topItemsData, orderTypesData] = await Promise.all([
+          fetchTodayStats(),
+          fetchSalesTrend(),
+          fetchTopItems(),
+          fetchOrderTypes()
+        ]);
+        setStats(statsData);
+        setChartsData({
+          trend: trendData,
+          topItems: topItemsData,
+          orderTypes: orderTypesData
+        });
+      } catch (error) {
+        console.error("Failed to load dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (activeTab === 'real-time') {
+      loadDashboardData();
+    }
+  }, [activeTab]);
+
+  React.useEffect(() => {
+    const loadHistoryData = async () => {
+      try {
+        const [historyData, statsData, trendData, topItemsData, orderTypesData] = await Promise.all([
+          fetchHistory(startDate, endDate),
+          fetchHistoryStats(startDate, endDate),
+          fetchHistoryTrend(startDate, endDate),
+          fetchHistoryTopItems(startDate, endDate),
+          fetchHistoryOrderTypes(startDate, endDate)
+        ]);
+        setHistory(historyData);
+        setHistoryStats(statsData);
+        setHistoryChartsData({
+          trend: trendData,
+          topItems: topItemsData,
+          orderTypes: orderTypesData
+        });
+      } catch (error) {
+        console.error("Failed to load history data:", error);
+      }
+    };
+
+    if (activeTab === 'history') {
+      loadHistoryData();
+    }
+  }, [activeTab, startDate, endDate]);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -39,8 +103,8 @@ function App() {
               <button
                 onClick={() => setActiveTab('real-time')}
                 className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'real-time'
-                    ? 'bg-dashboard-blue text-white shadow-md'
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'bg-dashboard-blue text-white shadow-md'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                   }`}
               >
                 <LayoutDashboard className="w-4 h-4" />
@@ -49,8 +113,8 @@ function App() {
               <button
                 onClick={() => setActiveTab('history')}
                 className={`flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'history'
-                    ? 'bg-dashboard-blue text-white shadow-md'
-                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
+                  ? 'bg-dashboard-blue text-white shadow-md'
+                  : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'
                   }`}
               >
                 <History className="w-4 h-4" />
@@ -91,8 +155,8 @@ function App() {
 
         {/* Dashboard Content - Cards and Charts (Always Visible) */}
         <div key={activeTab} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <KpiCards isHistory={activeTab === 'history'} t={t.kpi} />
-          <Charts isHistory={activeTab === 'history'} t={t.charts} />
+          <KpiCards isHistory={activeTab === 'history'} t={t.kpi} stats={activeTab === 'history' ? historyStats : stats} />
+          <Charts isHistory={activeTab === 'history'} t={t.charts} chartsData={activeTab === 'history' ? historyChartsData : chartsData} />
 
           {/* Only show History Table in History Tab */}
           {activeTab === 'history' && (
@@ -103,7 +167,7 @@ function App() {
                   {t.history.subtitle}
                 </span>
               </h3>
-              <HistorySection hideFilters={true} t={t.history} />
+              <HistorySection hideFilters={true} t={t.history} data={history} />
             </div>
           )}
         </div>

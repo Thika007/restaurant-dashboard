@@ -2,16 +2,11 @@ import React from 'react';
 import { TrendingUp, CreditCard, CircleAlert, RefreshCcw, Wallet, Globe } from 'lucide-react';
 
 // eslint-disable-next-line react/prop-types, no-unused-vars
-const KpiCard = ({ title, value, icon: Icon, color, trend, trendText }) => (
+const KpiCard = ({ title, value, icon: Icon, color }) => (
     <div className="glass-card p-6 flex items-start justify-between">
         <div>
             <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
             <h3 className="text-2xl font-bold text-slate-900">{value}</h3>
-            {trend && (
-                <p className={`text-xs mt-2 font-medium ${trend > 0 ? 'text-dashboard-green' : 'text-dashboard-red'}`}>
-                    {trend > 0 ? '+' : ''}{trend}% {trendText}
-                </p>
-            )}
         </div>
         <div className={`p-3 rounded-xl ${color}/10 flex items-center justify-center`}>
             {Icon && <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />}
@@ -19,56 +14,50 @@ const KpiCard = ({ title, value, icon: Icon, color, trend, trendText }) => (
     </div>
 );
 
-const KpiCards = ({ isHistory, t }) => {
+const KpiCards = ({ isHistory, t, stats }) => {
     const kpis = [
         {
             title: isHistory ? t.totalRevenue : t.todayRevenue,
-            value: isHistory ? '12,450,300.00' : '1,245,300.00',
+            value: stats?.total_revenue !== undefined ? stats.total_revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
             icon: TrendingUp,
-            color: 'bg-dashboard-blue',
-            trend: 12.5
+            color: 'bg-dashboard-blue'
         },
         {
             title: isHistory ? t.totalBills : t.todayBills,
-            value: isHistory ? '4,582' : '458',
+            value: stats?.bill_count !== undefined ? stats.bill_count.toLocaleString() : '0',
             icon: CreditCard,
-            color: 'bg-indigo-500',
-            trend: 8.2
+            color: 'bg-indigo-500'
         },
         {
             title: isHistory ? t.totalCancelled : t.todayCancelled,
-            value: isHistory ? '124' : '12',
+            value: stats?.cancelled_count !== undefined ? stats.cancelled_count.toLocaleString() : '0',
             icon: CircleAlert,
-            color: 'bg-dashboard-red',
-            trend: -4.1
+            color: 'bg-dashboard-red'
         },
         {
             title: isHistory ? t.totalRefunds : t.todayRefunds,
-            value: isHistory ? '154,000.00' : '15,400.00',
+            value: '0.00',
             icon: RefreshCcw,
-            color: 'bg-orange-500',
-            trend: 2.3
+            color: 'bg-orange-500'
         },
         {
             title: isHistory ? t.pendingCash : t.upcomingCash,
-            value: isHistory ? '450,600.00' : '45,600.00',
+            value: '0.00',
             icon: Wallet,
-            color: 'bg-dashboard-green',
-            trend: 15.7
+            color: 'bg-dashboard-green'
         },
         {
             title: isHistory ? t.totalOnline : t.todayOnline,
-            value: isHistory ? '1,245' : '124',
+            value: '0',
             icon: Globe,
-            color: 'bg-cyan-500',
-            trend: 10.1
+            color: 'bg-cyan-500'
         }
     ];
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
             {kpis.map((kpi, index) => (
-                <KpiCard key={index} {...kpi} trendText={isHistory ? t.vsPrevious : t.fromYesterday} />
+                <KpiCard key={index} {...kpi} />
             ))}
         </div>
     );

@@ -34,16 +34,22 @@ const paymentMethodData = [
     { name: 'Credit', value: 15, color: '#f59e0b' },
 ];
 
-const Charts = ({ isHistory, t }) => {
-    const displaySalesData = isHistory ? [
-        { time: 'Mon', sales: 12000 },
-        { time: 'Tue', sales: 15000 },
-        { time: 'Wed', sales: 11000 },
-        { time: 'Thu', sales: 18000 },
-        { time: 'Fri', sales: 24000 },
-        { time: 'Sat', sales: 30000 },
-        { time: 'Sun', sales: 28000 },
-    ] : salesData;
+const Charts = ({ isHistory, t, chartsData }) => {
+    const { trend, topItems, orderTypes } = chartsData || { trend: [], topItems: [], orderTypes: [] };
+
+    // Map order types to the format expected by PieChart
+    const orderTypeChartData = orderTypes.map((item, index) => ({
+        name: item.type,
+        value: item.count,
+        color: index % 2 === 0 ? '#1e3a8a' : '#10b981'
+    }));
+
+    const salesTrendData = trend.map(item => ({
+        time: isHistory ? item.date : `${item.hour}:00`,
+        sales: item.revenue
+    }));
+
+    const displaySalesData = salesTrendData;
 
     const salesTitle = isHistory ? t.salesWeekly : t.sales24h;
     const dataKey = isHistory ? 'time' : 'time'; // Still using time/day for XAxis
@@ -79,13 +85,13 @@ const Charts = ({ isHistory, t }) => {
                 <h3 className="text-lg font-bold text-slate-800 mb-6">{t.topItems}</h3>
                 <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={topItemsData} layout="vertical" margin={{ left: 40 }}>
+                        <BarChart data={topItems} layout="vertical" margin={{ left: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" />
                             <YAxis dataKey="name" type="category" width={100} />
                             <Tooltip />
-                            <Bar dataKey="qty" fill="#1e3a8a" radius={[0, 4, 4, 0]}>
-                                {topItemsData.map((entry, index) => (
+                            <Bar dataKey="quantity" fill="#1e3a8a" radius={[0, 4, 4, 0]}>
+                                {topItems.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={index === 0 ? '#1e3a8a' : index === 1 ? '#10b981' : '#6366f1'} />
                                 ))}
                             </Bar>
@@ -101,7 +107,7 @@ const Charts = ({ isHistory, t }) => {
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
-                                data={orderTypeData}
+                                data={orderTypeChartData}
                                 cx="50%"
                                 cy="50%"
                                 innerRadius={60}
@@ -109,7 +115,7 @@ const Charts = ({ isHistory, t }) => {
                                 paddingAngle={5}
                                 dataKey="value"
                             >
-                                {orderTypeData.map((entry, index) => (
+                                {orderTypeChartData.map((entry, index) => (
                                     <PieCell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                             </Pie>
