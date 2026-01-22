@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Calendar, Download, Filter, Search } from 'lucide-react';
 import { format } from 'date-fns';
 
-const HistorySection = ({ hideFilters }) => {
+const HistorySection = ({ hideFilters, t }) => {
     const [startDate, setStartDate] = useState('2026-01-01');
     const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
@@ -29,7 +29,7 @@ const HistorySection = ({ hideFilters }) => {
                                 className="border-none bg-slate-100 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-dashboard-blue"
                             />
                         </div>
-                        <span className="text-slate-400">to</span>
+                        <span className="text-slate-400">{t.to || 'to'}</span>
                         <input
                             type="date"
                             value={endDate}
@@ -41,11 +41,11 @@ const HistorySection = ({ hideFilters }) => {
                     <div className="flex items-center gap-2">
                         <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium transition-colors">
                             <Filter className="w-4 h-4" />
-                            Filter
+                            {t.filter || 'Filter'}
                         </button>
                         <button className="flex items-center gap-2 px-4 py-2 bg-dashboard-blue text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors">
                             <Download className="w-4 h-4" />
-                            Export CSV
+                            {t.export}
                         </button>
                     </div>
                 </div>
@@ -56,12 +56,12 @@ const HistorySection = ({ hideFilters }) => {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Transaction ID</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Date & Time</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Order Details</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Amount (LKR)</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Type</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t.txnId}</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t.dateTime}</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t.orderDetails}</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t.amount}</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t.type}</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t.status}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -75,14 +75,14 @@ const HistorySection = ({ hideFilters }) => {
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.type === 'Dine-in' ? 'bg-blue-100 text-blue-700' :
                                             row.type === 'Delivery' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'
                                             }`}>
-                                            {row.type}
+                                            {row.type === 'Dine-in' ? t.dineIn : row.type === 'Delivery' ? t.delivery : t.takeaway}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-sm">
                                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${row.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
                                             row.status === 'Cancelled' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
                                             }`}>
-                                            {row.status}
+                                            {row.status === 'Completed' ? t.completed : row.status === 'Cancelled' ? t.cancelled : t.refunded}
                                         </span>
                                     </td>
                                 </tr>
@@ -91,10 +91,10 @@ const HistorySection = ({ hideFilters }) => {
                     </table>
                 </div>
                 <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-sm text-slate-500">
-                    <p>Showing 1 to 6 of 258 transactions</p>
+                    <p>{t.showing.replace('{start}', '1').replace('{end}', '6').replace('{total}', '258')}</p>
                     <div className="flex gap-2">
-                        <button className="px-3 py-1 border border-slate-200 rounded hover:bg-white disabled:opacity-50" disabled>Previous</button>
-                        <button className="px-3 py-1 border border-slate-200 rounded hover:bg-white">Next</button>
+                        <button className="px-3 py-1 border border-slate-200 rounded hover:bg-white disabled:opacity-50" disabled>{t.previous}</button>
+                        <button className="px-3 py-1 border border-slate-200 rounded hover:bg-white">{t.next}</button>
                     </div>
                 </div>
             </div>

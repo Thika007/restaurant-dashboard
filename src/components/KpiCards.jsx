@@ -19,45 +19,45 @@ const KpiCard = ({ title, value, icon: Icon, color, trend, trendText }) => (
     </div>
 );
 
-const KpiCards = ({ isHistory }) => {
+const KpiCards = ({ isHistory, t }) => {
     const kpis = [
         {
-            title: isHistory ? 'Total Revenue (LKR)' : 'Today Revenue (LKR)',
+            title: isHistory ? t.totalRevenue : t.todayRevenue,
             value: isHistory ? '12,450,300.00' : '1,245,300.00',
             icon: TrendingUp,
             color: 'bg-dashboard-blue',
             trend: 12.5
         },
         {
-            title: isHistory ? 'Total Bill Count' : 'Today Bills',
+            title: isHistory ? t.totalBills : t.todayBills,
             value: isHistory ? '4,582' : '458',
             icon: CreditCard,
             color: 'bg-indigo-500',
             trend: 8.2
         },
         {
-            title: isHistory ? 'Total Cancelled' : 'Today Cancelled',
+            title: isHistory ? t.totalCancelled : t.todayCancelled,
             value: isHistory ? '124' : '12',
             icon: CircleAlert,
             color: 'bg-dashboard-red',
             trend: -4.1
         },
         {
-            title: isHistory ? 'Total Refunds' : 'Today Refunds',
+            title: isHistory ? t.totalRefunds : t.todayRefunds,
             value: isHistory ? '154,000.00' : '15,400.00',
             icon: RefreshCcw,
             color: 'bg-orange-500',
             trend: 2.3
         },
         {
-            title: isHistory ? 'Pending Cash' : 'Upcoming Cash',
+            title: isHistory ? t.pendingCash : t.upcomingCash,
             value: isHistory ? '450,600.00' : '45,600.00',
             icon: Wallet,
             color: 'bg-dashboard-green',
             trend: 15.7
         },
         {
-            title: isHistory ? 'Total Online' : 'Today Online',
+            title: isHistory ? t.totalOnline : t.todayOnline,
             value: isHistory ? '1,245' : '124',
             icon: Globe,
             color: 'bg-cyan-500',
@@ -68,7 +68,7 @@ const KpiCards = ({ isHistory }) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
             {kpis.map((kpi, index) => (
-                <KpiCard key={index} {...kpi} trendText={isHistory ? "vs previous period" : "from yesterday"} />
+                <KpiCard key={index} {...kpi} trendText={isHistory ? t.vsPrevious : t.fromYesterday} />
             ))}
         </div>
     );

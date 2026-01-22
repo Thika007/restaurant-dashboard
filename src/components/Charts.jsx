@@ -34,7 +34,7 @@ const paymentMethodData = [
     { name: 'Credit', value: 15, color: '#f59e0b' },
 ];
 
-const Charts = ({ isHistory }) => {
+const Charts = ({ isHistory, t }) => {
     const displaySalesData = isHistory ? [
         { time: 'Mon', sales: 12000 },
         { time: 'Tue', sales: 15000 },
@@ -45,7 +45,7 @@ const Charts = ({ isHistory }) => {
         { time: 'Sun', sales: 28000 },
     ] : salesData;
 
-    const salesTitle = isHistory ? 'Weekly Sales Trend' : '24-Hour Sales Trend';
+    const salesTitle = isHistory ? t.salesWeekly : t.sales24h;
     const dataKey = isHistory ? 'time' : 'time'; // Still using time/day for XAxis
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -76,7 +76,7 @@ const Charts = ({ isHistory }) => {
 
             {/* Top 3 Selling Items */}
             <div className="glass-card p-6 min-h-[400px]">
-                <h3 className="text-lg font-bold text-slate-800 mb-6">Top 3 Selling Items</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-6">{t.topItems}</h3>
                 <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={topItemsData} layout="vertical" margin={{ left: 40 }}>
@@ -96,7 +96,7 @@ const Charts = ({ isHistory }) => {
 
             {/* Order Type Pie Chart */}
             <div className="glass-card p-6 min-h-[350px]">
-                <h3 className="text-lg font-bold text-slate-800 mb-6">{isHistory ? 'Historical Order Types' : 'Today Order Type'}</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-6">{isHistory ? t.orderTypeHistory : t.orderTypeToday}</h3>
                 <div className="h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
@@ -122,7 +122,7 @@ const Charts = ({ isHistory }) => {
 
             {/* Payment Method Donut Chart */}
             <div className="glass-card p-6 min-h-[350px]">
-                <h3 className="text-lg font-bold text-slate-800 mb-6">{isHistory ? 'Historical Payment Methods' : 'Today Payment Method'}</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-6">{isHistory ? t.paymentHistory : t.paymentToday}</h3>
                 <div className="h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
