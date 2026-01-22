@@ -60,7 +60,7 @@ export const translations = {
             export: "Export CSV"
         },
         footer: {
-            rights: "© 2026 LOGO Management System",
+            rights: "© 2026 RB Theekshana",
             privacy: "Privacy Policy",
             terms: "Terms of Service",
             settings: "Settings"
@@ -127,7 +127,7 @@ export const translations = {
             export: "CSV අපනයනය"
         },
         footer: {
-            rights: "© 2026 LOGO කළමනාකරණ පද්ධතිය",
+            rights: "© 2026 RB Theekshana",
             privacy: "පෞද්ගලිකත්ව ප්‍රතිපත්තිය",
             terms: "සේවා කොන්දේසි",
             settings: "සැකසුම්"
