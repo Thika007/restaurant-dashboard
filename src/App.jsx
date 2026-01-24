@@ -6,7 +6,10 @@ import HistorySection from './components/HistorySection';
 import { LayoutDashboard, History, Settings, Calendar, Download, Languages } from 'lucide-react';
 import { format } from 'date-fns';
 import { translations } from './constants/translations';
-import { fetchTodayStats, fetchSalesTrend, fetchTopItems, fetchOrderTypes, fetchHistory, fetchHistoryStats, fetchHistoryTrend, fetchHistoryTopItems, fetchHistoryOrderTypes } from './services/api';
+import {
+  fetchTodayStats, fetchSalesTrend, fetchTopItems, fetchOrderTypes, fetchPaymentMethods,
+  fetchHistory, fetchHistoryStats, fetchHistoryTrend, fetchHistoryTopItems, fetchHistoryOrderTypes, fetchHistoryPaymentMethods
+} from './services/api';
 
 function App() {
   const [activeTab, setActiveTab] = useState('real-time');
@@ -17,8 +20,8 @@ function App() {
   // Dashboard Data State
   const [stats, setStats] = useState(null);
   const [historyStats, setHistoryStats] = useState(null);
-  const [historyChartsData, setHistoryChartsData] = useState({ trend: [], topItems: [], orderTypes: [] });
-  const [chartsData, setChartsData] = useState({ trend: [], topItems: [], orderTypes: [] });
+  const [historyChartsData, setHistoryChartsData] = useState({ trend: [], topItems: [], orderTypes: [], paymentMethods: [] });
+  const [chartsData, setChartsData] = useState({ trend: [], topItems: [], orderTypes: [], paymentMethods: [] });
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,17 +31,19 @@ function App() {
     const loadDashboardData = async () => {
       try {
         setLoading(true);
-        const [statsData, trendData, topItemsData, orderTypesData] = await Promise.all([
+        const [statsData, trendData, topItemsData, orderTypesData, paymentMethodsData] = await Promise.all([
           fetchTodayStats(),
           fetchSalesTrend(),
           fetchTopItems(),
-          fetchOrderTypes()
+          fetchOrderTypes(),
+          fetchPaymentMethods()
         ]);
         setStats(statsData);
         setChartsData({
           trend: trendData,
           topItems: topItemsData,
-          orderTypes: orderTypesData
+          orderTypes: orderTypesData,
+          paymentMethods: paymentMethodsData
         });
       } catch (error) {
         console.error("Failed to load dashboard data:", error);
@@ -55,19 +60,21 @@ function App() {
   React.useEffect(() => {
     const loadHistoryData = async () => {
       try {
-        const [historyData, statsData, trendData, topItemsData, orderTypesData] = await Promise.all([
+        const [historyData, statsData, trendData, topItemsData, orderTypesData, paymentMethodsData] = await Promise.all([
           fetchHistory(startDate, endDate),
           fetchHistoryStats(startDate, endDate),
           fetchHistoryTrend(startDate, endDate),
           fetchHistoryTopItems(startDate, endDate),
-          fetchHistoryOrderTypes(startDate, endDate)
+          fetchHistoryOrderTypes(startDate, endDate),
+          fetchHistoryPaymentMethods(startDate, endDate)
         ]);
         setHistory(historyData);
         setHistoryStats(statsData);
         setHistoryChartsData({
           trend: trendData,
           topItems: topItemsData,
-          orderTypes: orderTypesData
+          orderTypes: orderTypesData,
+          paymentMethods: paymentMethodsData
         });
       } catch (error) {
         console.error("Failed to load history data:", error);

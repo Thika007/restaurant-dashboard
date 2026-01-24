@@ -83,3 +83,21 @@ export const fetchHistoryOrderTypes = async (startDate, endDate) => {
     if (!response.ok) throw new Error('Failed to fetch history order types');
     return response.json();
 };
+
+export const fetchPaymentMethods = async () => {
+    const response = await fetch(`${API_BASE_URL}/charts/payment-methods`);
+    if (!response.ok) throw new Error('Failed to fetch payment methods');
+    return response.json();
+};
+
+export const fetchHistoryPaymentMethods = async (startDate, endDate) => {
+    let url = `${API_BASE_URL}/history/payment-methods`;
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (params.toString()) url += `?${params.toString()}`;
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error('Failed to fetch history payment methods');
+    return response.json();
+};

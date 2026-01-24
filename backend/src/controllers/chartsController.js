@@ -30,8 +30,19 @@ export const getOrderTypes = async (req, res) => {
     }
 };
 
+export const getPaymentMethods = async (req, res) => {
+    try {
+        const methods = await chartsService.getPaymentMethods();
+        res.json(methods);
+    } catch (error) {
+        console.error("Payment Methods Error:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 export default {
     getSalesTrend,
     getTopItems,
-    getOrderTypes
+    getOrderTypes,
+    getPaymentMethods
 };

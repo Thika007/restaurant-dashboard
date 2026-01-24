@@ -28,20 +28,24 @@ const orderTypeData = [
     { name: 'Delivery', value: 138, color: '#10b981' },
 ];
 
-const paymentMethodData = [
-    { name: 'Cash', value: 45, color: '#1e3a8a' },
-    { name: 'Card', value: 40, color: '#10b981' },
-    { name: 'Credit', value: 15, color: '#f59e0b' },
-];
-
 const Charts = ({ isHistory, t, chartsData }) => {
-    const { trend, topItems, orderTypes } = chartsData || { trend: [], topItems: [], orderTypes: [] };
+    const { trend, topItems, orderTypes, paymentMethods } = chartsData || { trend: [], topItems: [], orderTypes: [], paymentMethods: [] };
+
+    // Set colors for consistent assignment
+    const colorPalette = ['#1e3a8a', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#14b8a6'];
 
     // Map order types to the format expected by PieChart
     const orderTypeChartData = orderTypes.map((item, index) => ({
         name: item.type,
         value: item.count,
-        color: index % 2 === 0 ? '#1e3a8a' : '#10b981'
+        color: colorPalette[index % colorPalette.length]
+    }));
+
+    // Map payment methods to format expected by DonutChart
+    const paymentMethodChartData = paymentMethods.map((method, index) => ({
+        name: method.name,
+        value: method.value,
+        color: colorPalette[index % colorPalette.length]
     }));
 
     const salesTrendData = trend.map(item => ({
@@ -133,7 +137,7 @@ const Charts = ({ isHistory, t, chartsData }) => {
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
-                                data={paymentMethodData}
+                                data={paymentMethodChartData}
                                 cx="50%"
                                 cy="50%"
                                 innerRadius={60}
@@ -141,7 +145,7 @@ const Charts = ({ isHistory, t, chartsData }) => {
                                 paddingAngle={5}
                                 dataKey="value"
                             >
-                                {paymentMethodData.map((entry, index) => (
+                                {paymentMethodChartData.map((entry, index) => (
                                     <PieCell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                             </Pie>

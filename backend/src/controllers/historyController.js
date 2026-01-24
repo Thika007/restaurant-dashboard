@@ -55,10 +55,22 @@ export const getHistoryOrderTypes = async (req, res) => {
     }
 };
 
+export const getHistoryPaymentMethods = async (req, res) => {
+    try {
+        const { startDate, endDate } = req.query;
+        const methods = await historyService.getHistoryPaymentMethods(startDate, endDate);
+        res.json(methods);
+    } catch (error) {
+        console.error("History Payment Methods Error:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 export default {
     getHistory,
     getHistoryStats,
     getHistorySalesTrend,
     getHistoryTopItems,
-    getHistoryOrderTypes
+    getHistoryOrderTypes,
+    getHistoryPaymentMethods
 };

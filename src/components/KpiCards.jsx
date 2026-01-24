@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, CreditCard, CircleAlert, RefreshCcw, Wallet, Globe } from 'lucide-react';
+import { TrendingUp, CreditCard, CircleAlert, RefreshCcw, Wallet, Users } from 'lucide-react';
 
 // eslint-disable-next-line react/prop-types, no-unused-vars
 const KpiCard = ({ title, value, icon: Icon, color }) => (
@@ -23,6 +23,12 @@ const KpiCards = ({ isHistory, t, stats }) => {
             color: 'bg-dashboard-blue'
         },
         {
+            title: t.serviceCharge,
+            value: stats?.total_service_charge !== undefined ? stats.total_service_charge.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            icon: Wallet,
+            color: 'bg-dashboard-green'
+        },
+        {
             title: isHistory ? t.totalBills : t.todayBills,
             value: stats?.bill_count !== undefined ? stats.bill_count.toLocaleString() : '0',
             icon: CreditCard,
@@ -35,22 +41,16 @@ const KpiCards = ({ isHistory, t, stats }) => {
             color: 'bg-dashboard-red'
         },
         {
+            title: t.numberOfGuests,
+            value: stats?.guest_count !== undefined ? stats.guest_count.toLocaleString() : '0',
+            icon: Users,
+            color: 'bg-cyan-500'
+        },
+        {
             title: isHistory ? t.totalRefunds : t.todayRefunds,
             value: '0.00',
             icon: RefreshCcw,
             color: 'bg-orange-500'
-        },
-        {
-            title: isHistory ? t.pendingCash : t.upcomingCash,
-            value: '0.00',
-            icon: Wallet,
-            color: 'bg-dashboard-green'
-        },
-        {
-            title: isHistory ? t.totalOnline : t.todayOnline,
-            value: '0',
-            icon: Globe,
-            color: 'bg-cyan-500'
         }
     ];
 

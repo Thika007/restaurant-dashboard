@@ -6,5 +6,6 @@ const router = express.Router();
 router.get('/sales-trend', chartsController.getSalesTrend);
 router.get('/top-items', chartsController.getTopItems);
 router.get('/order-types', chartsController.getOrderTypes);
+router.get('/payment-methods', chartsController.getPaymentMethods);
 
 export default router;
