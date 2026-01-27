@@ -25,6 +25,10 @@ export const translations = {
             totalRefunds: "Total Refunds",
             serviceCharge: "Total Service Charge",
             numberOfGuests: "Number of Guests",
+            voidBills: "Void Bills",
+            complimentary: "හිමිකරුගේ ",
+            staff: "Staff Bills",
+            totalDiscount: "Total Discount",
             fromYesterday: "from yesterday",
             vsPrevious: "vs previous period"
         },
@@ -58,10 +62,23 @@ export const translations = {
             export: "Export CSV"
         },
         footer: {
-            rights: "© 2026 RB Theekshana",
+            rights: "© 2026 RR Theekshana",
             privacy: "Privacy Policy",
             terms: "Terms of Service",
             settings: "Settings"
+        },
+        login: {
+            welcome: "Welcome back",
+            subtitle: "Please enter your details to sign in",
+            userId: "User ID",
+            userIdPlaceholder: "Enter your ID",
+            password: "Password",
+            passwordPlaceholder: "••••••••",
+            rememberMe: "Remember me",
+            forgot: "Forgot?",
+            signIn: "Sign in to Dashboard",
+            signingIn: "Signing in...",
+            footer: "RR Theekshana v2.0 © 2026. All rights reserved."
         }
     },
     si: {
@@ -90,6 +107,10 @@ export const translations = {
             totalRefunds: "මුළු මුදල් ආපසු ගෙවීම්",
             serviceCharge: "මුළු සේවා ගාස්තුව",
             numberOfGuests: "අමුත්තන් සංඛ්‍යාව",
+            voidBills: "අවලංගු කළ බිල්පත් (Void)",
+            complimentary: "හිමිකරුගේ ",
+            staff: "කාර්ය මණ්ඩලය",
+            totalDiscount: "මුළු වට්ටම්",
             fromYesterday: "ඊයේ සිට",
             vsPrevious: "පෙර කාලයට සාපේක්ෂව"
         },
@@ -123,10 +144,23 @@ export const translations = {
             export: "CSV අපනයනය"
         },
         footer: {
-            rights: "© 2026 RB Theekshana",
+            rights: "© 2026 RR Theekshana",
             privacy: "පෞද්ගලිකත්ව ප්‍රතිපත්තිය",
             terms: "සේවා කොන්දේසි",
             settings: "සැකසුම්"
+        },
+        login: {
+            welcome: "නැවතත් සාදරයෙන් පිළිගනිමු",
+            subtitle: "ඇතුළු වීමට කරුණාකර ඔබේ විස්තර ඇතුළත් කරන්න",
+            userId: "පරිශීලක හැඳුනුම්පත",
+            userIdPlaceholder: "ඔබේ හැඳුනුම්පත ඇතුළත් කරන්න",
+            password: "මුරපදය",
+            passwordPlaceholder: "••••••••",
+            rememberMe: "මතක තබා ගන්න",
+            forgot: "අමතක වූවාද?",
+            signIn: "දර්ශක පුවරුවට ඇතුළු වන්න",
+            signingIn: "ඇතුළු වෙමින් පවතී...",
+            footer: "RR Theekshana v2.0 © 2026. සියලුම හිමිකම් ඇවිරිණි."
         }
     }
 };

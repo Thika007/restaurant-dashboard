@@ -1,21 +1,34 @@
 import React from 'react';
-import { TrendingUp, CreditCard, CircleAlert, RefreshCcw, Wallet, Users } from 'lucide-react';
+import {
+    TrendingUp, CreditCard, CircleAlert, RefreshCcw, Wallet, Users,
+    Trash2, Gift, UserCheck, Tag
+} from 'lucide-react';
 
 // eslint-disable-next-line react/prop-types, no-unused-vars
-const KpiCard = ({ title, value, icon: Icon, color }) => (
-    <div className="glass-card p-6 flex items-start justify-between">
-        <div>
-            <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
-            <h3 className="text-2xl font-bold text-slate-900">{value}</h3>
+const KpiCard = ({ title, value, icon: Icon, color, subValue, lang }) => (
+    <div className="glass-card p-6 flex flex-col h-full min-h-[130px] transition-all hover:shadow-md overflow-hidden">
+        <div className="flex items-start justify-between gap-4 mb-2">
+            <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-slate-500 leading-snug">
+                    {title}
+                </p>
+                {subValue !== undefined && (
+                    <p className="text-[11px] font-bold text-dashboard-blue mt-0.5 uppercase tracking-wider">
+                        {subValue} {lang === 'si' ? 'බිල්පත්' : 'Bills'}
+                    </p>
+                )}
+            </div>
+            {Icon && <Icon className="w-5 h-5 text-slate-700 flex-shrink-0 mt-0.5" />}
         </div>
-        <div className={`p-3 rounded-xl ${color}/10 flex items-center justify-center`}>
-            {Icon && <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />}
+        <div className="mt-auto">
+            <h3 className="text-2xl font-bold text-slate-900 break-words">{value}</h3>
         </div>
     </div>
 );
 
-const KpiCards = ({ isHistory, t, stats }) => {
-    const kpis = [
+const KpiCards = ({ isHistory, t, stats, lang }) => {
+    // Large Top Row Metrics
+    const topRowKpis = [
         {
             title: isHistory ? t.totalRevenue : t.todayRevenue,
             value: stats?.total_revenue !== undefined ? stats.total_revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
@@ -28,6 +41,22 @@ const KpiCards = ({ isHistory, t, stats }) => {
             icon: Wallet,
             color: 'bg-dashboard-green'
         },
+        {
+            title: t.totalDiscount,
+            value: stats?.total_discount !== undefined ? stats.total_discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            icon: Tag,
+            color: 'bg-pink-500'
+        },
+        {
+            title: isHistory ? t.totalRefunds : t.todayRefunds,
+            value: '0.00',
+            icon: RefreshCcw,
+            color: 'bg-orange-500'
+        }
+    ];
+
+    // Smaller Bottom Row Metrics
+    const bottomRowKpis = [
         {
             title: isHistory ? t.totalBills : t.todayBills,
             value: stats?.bill_count !== undefined ? stats.bill_count.toLocaleString() : '0',
@@ -47,18 +76,43 @@ const KpiCards = ({ isHistory, t, stats }) => {
             color: 'bg-cyan-500'
         },
         {
-            title: isHistory ? t.totalRefunds : t.todayRefunds,
-            value: '0.00',
-            icon: RefreshCcw,
-            color: 'bg-orange-500'
+            title: t.voidBills,
+            value: stats?.void_amount !== undefined ? stats.void_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            subValue: stats?.void_count,
+            icon: Trash2,
+            color: 'bg-rose-500'
+        },
+        {
+            title: t.complimentary,
+            value: stats?.complimentary_amount !== undefined ? stats.complimentary_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            subValue: stats?.complimentary_count,
+            icon: Gift,
+            color: 'bg-purple-500'
+        },
+        {
+            title: t.staff,
+            value: stats?.staff_amount !== undefined ? stats.staff_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            subValue: stats?.staff_count,
+            icon: UserCheck,
+            color: 'bg-amber-500'
         }
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
-            {kpis.map((kpi, index) => (
-                <KpiCard key={index} {...kpi} />
-            ))}
+        <div className="space-y-6 mb-8">
+            {/* Top Row - Financials (4 Columns) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {topRowKpis.map((kpi, index) => (
+                    <KpiCard key={`top-${index}`} {...kpi} lang={lang} />
+                ))}
+            </div>
+
+            {/* Bottom Row - Activity (6 Columns) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+                {bottomRowKpis.map((kpi, index) => (
+                    <KpiCard key={`bottom-${index}`} {...kpi} lang={lang} />
+                ))}
+            </div>
         </div>
     );
 };

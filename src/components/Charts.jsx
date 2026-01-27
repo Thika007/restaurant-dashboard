@@ -62,7 +62,7 @@ const Charts = ({ isHistory, t, chartsData }) => {
             {/* Sales Trend */}
             <div className="glass-card p-6 min-h-[400px]">
                 <h3 className="text-lg font-bold text-slate-800 mb-6">{salesTitle}</h3>
-                <div className="h-[300px]">
+                <div className="h-[300px] w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={displaySalesData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -87,7 +87,7 @@ const Charts = ({ isHistory, t, chartsData }) => {
             {/* Top 3 Selling Items */}
             <div className="glass-card p-6 min-h-[400px]">
                 <h3 className="text-lg font-bold text-slate-800 mb-6">{t.topItems}</h3>
-                <div className="h-[300px]">
+                <div className="h-[300px] w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={topItems} layout="vertical" margin={{ left: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
