@@ -1,66 +1,63 @@
-# Danu Dashboard v2.0 - Setup Instructions
+# Danu Dashboard - Deployment Guide
 
-Welcome to the Danu Dashboard! Follow these steps to set up the system on your environment.
+Welcome to the **Danu Dashboard**. This application is a comprehensive restaurant management tool featuring real-time sales tracking, historical analytics, and secure user access.
 
-## 1. Prerequisites
-- **Node.js**: Install Node.js (version 16 or higher) from [nodejs.org](https://nodejs.org/).
-- **Database**: Ensure you have access to the MSSQL Database.
+## Prerequisites
 
----
-
-## 2. Backend Setup
-1. Open the `backend` folder in a terminal.
-2. Run the following command to install dependencies:
-   ```bash
-   npm install
-   ```
-3. Update Database Credentials:
-   - Open `backend/src/config/db.js`.
-   - Update `server`, `database`, `user`, and `password` with your SQL server details.
-4. Start the Backend Server:
-   ```bash
-   npm start
-   ```
-   *Note: The server will run on `http://localhost:5000`.*
+Before setting up the dashboard, ensure you have the following installed:
+1.  **Node.js** (v18 or higher recommended)
+2.  **Microsoft SQL Server** (MS SQL) with the `RESTDB28` database attached.
 
 ---
 
-## 3. Frontend Setup
-The frontend is already built and located in the `frontend` folder.
+## 🚀 Setup Instructions
 
-1. Configure Connection:
-   - Open `frontend/connection.txt`.
-   - Update the `URL=` to point to your backend API. 
-   - *Example (Local):* `URL=http://localhost:5000/api`
-   - *Example (LAN):* `URL=http://192.168.1.100:5000/api` (Replace with Server IP)
-   - Update `REFRESH=` to your desired refresh rate in milliseconds.
-2. Hosting:
-   - You can serve the `frontend` folder using any static web server (like Nginx, IIS, or a simple Node server).
+### 1. Backend Configuration
+1.  Navigate to the `backend` folder.
+2.  Rename `.env.example` to `.env`.
+3.  Open the `.env` file and update the database connection details:
+    *   `DB_USER`: Your SQL Server username (default: `sa`).
+    *   `DB_PASSWORD`: Your SQL Server password.
+    *   `DB_SERVER`: Your SQL Server address (default: `localhost`).
+    *   `DB_NAME`: The database name (default: `RESTDB28`).
+    *   `JWT_SECRET`: A secure random string for authentication.
+
+### 2. Installations
+Open your terminal (Command Prompt or PowerShell) and run the following command inside the `backend` folder to install dependencies:
+```bash
+npm install
+```
+
+### 3. Running the Application
+To start the dashboard, run:
+```bash
+npm start
+```
+The application will start on **port 5000**.
+
+---
+
+## 🌐 Accessing the Dashboard
+
+Once the backend is running, you can access the dashboard by opening your web browser and going to:
+**http://localhost:5000**
+
+> [!NOTE]
+> This single port (5000) serves both the backend API and the frontend user interface for a simplified experience.
 
 ---
 
-## 4. Support
-Developed by **RR Theekshana**.
-© 2026 RR Theekshana. All rights reserved.
+## 🔑 Login Information
+*   **System Admin**: Use the credentials created during the database setup.
+*   **Default Users**: Ensure users are registered in the `user_file` table in your database.
 
 ---
 
-# පිහිටුවීමේ උපදෙස් (Sinhala)
-
-## 1. පූර්ව අවශ්‍යතා
-- **Node.js**: [nodejs.org](https://nodejs.org/) වෙතින් Node.js (version 16 හෝ ඉහළ) ස්ථාපනය කරන්න.
-- **Database**: MSSQL Database එක සූදානම් කර තබා ගන්න.
-
-## 2. Backend සැකසීම
-1. Terminal එකක් මගින් `backend` folder එක විවෘත කරන්න.
-2. මෙම කේතය ක්‍රියාත්මක කරන්න: `npm install`
-3. දත්ත සමුදාය (Database) විස්තර යාවත්කාලීන කරන්න:
-   - `backend/src/config/db.js` ගොනුව විවෘත කර ඔබේ SQL server විස්තර ඇතුළත් කරන්න.
-4. Backend එක ආරම්භ කරන්න: `npm start`
-
-## 3. Frontend සැකසීම
-1. `frontend/connection.txt` ගොනුව විවෘත කර API URL එක සහ Refresh කාලය අවශ්‍ය පරිදි වෙනස් කරන්න.
-2. `frontend` folder එක ඕනෑම static web server එකක් හරහා host කරන්න.
+## 🛠 Features
+- **Real-time Overview**: Track today's revenue, bills, and orders.
+- **Historical Analysis**: Filter and analyze past sales data by date range.
+- **Multi-language Support**: Switch between English and Sinhala.
+- **Responsive Design**: Accessible on both desktop and mobile devices.
 
 ---
-© 2026 RR Theekshana. සියලුම හිමිකම් ඇවිරිණි.
+© 2026 Danu Dashboard. All rights reserved.

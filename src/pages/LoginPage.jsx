@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { login } from '../services/api';
 import { LayoutDashboard, User, Lock, AlertCircle, Languages, Maximize, Minimize } from 'lucide-react';
 import { translations } from '../constants/translations';
+import loginBg from '../assets/login-bg.png';
 
 const LoginPage = ({ lang, setLang }) => {
     const [userId, setUserId] = useState('');
@@ -74,7 +75,7 @@ const LoginPage = ({ lang, setLang }) => {
             {/* Left Side - Image (Clean) */}
             <div className="hidden lg:flex lg:w-1/2 relative bg-gray-100">
                 <img
-                    src="src/assets/login-bg.png"
+                    src={loginBg}
                     alt="Restaurant Management"
                     className="absolute inset-0 w-full h-full object-cover"
                 />

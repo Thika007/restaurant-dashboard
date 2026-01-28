@@ -26,7 +26,11 @@ export const getConnection = async () => {
                     return pool;
                 })
                 .catch(err => {
-                    console.error('Database Connection Failed! Bad Config: ', err);
+                    console.error('Database Connection Failed! Details:', {
+                        message: err.message,
+                        code: err.code,
+                        config: { ...config, password: '****' }
+                    });
                     poolPromise = null;
                     throw err;
                 });

@@ -26,7 +26,7 @@ export const translations = {
             serviceCharge: "Total Service Charge",
             numberOfGuests: "Number of Guests",
             voidBills: "Void Bills",
-            complimentary: "හිමිකරුගේ ",
+            complimentary: "Complimentary",
             staff: "Staff Bills",
             totalDiscount: "Total Discount",
             fromYesterday: "from yesterday",
@@ -62,7 +62,7 @@ export const translations = {
             export: "Export CSV"
         },
         footer: {
-            rights: "© 2026 RR Theekshana",
+            rights: "© 2026 Danu Dashboard",
             privacy: "Privacy Policy",
             terms: "Terms of Service",
             settings: "Settings"
@@ -78,7 +78,7 @@ export const translations = {
             forgot: "Forgot?",
             signIn: "Sign in to Dashboard",
             signingIn: "Signing in...",
-            footer: "RR Theekshana v2.0 © 2026. All rights reserved."
+            footer: "Danu Dashboard v1.0 © 2026. All rights reserved."
         }
     },
     si: {
@@ -144,7 +144,7 @@ export const translations = {
             export: "CSV අපනයනය"
         },
         footer: {
-            rights: "© 2026 RR Theekshana",
+            rights: "© 2026 Danu Dashboard",
             privacy: "පෞද්ගලිකත්ව ප්‍රතිපත්තිය",
             terms: "සේවා කොන්දේසි",
             settings: "සැකසුම්"
@@ -160,7 +160,7 @@ export const translations = {
             forgot: "අමතක වූවාද?",
             signIn: "දර්ශක පුවරුවට ඇතුළු වන්න",
             signingIn: "ඇතුළු වෙමින් පවතී...",
-            footer: "RR Theekshana v2.0 © 2026. සියලුම හිමිකම් ඇවිරිණි."
+            footer: "Danu Dashboard v1.0 © 2026. සියලුම හිමිකම් ඇවිරිණි."
         }
     }
 };

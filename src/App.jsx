@@ -184,7 +184,7 @@ const Dashboard = ({ lang, setLang }) => {
 };
 
 function App() {
-  const [lang, setLang] = useState('si');
+  const [lang, setLang] = useState('en');
 
   return (
     <Routes>
