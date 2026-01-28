@@ -11,6 +11,9 @@ export default {
         'dashboard-green': '#10b981', // Emerald Green
         'dashboard-red': '#ef4444', // Soft Red
       },
+      screens: {
+        'xs': '400px',
+      },
     },
   },
   plugins: [],

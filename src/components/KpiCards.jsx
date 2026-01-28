@@ -6,22 +6,22 @@ import {
 
 // eslint-disable-next-line react/prop-types, no-unused-vars
 const KpiCard = ({ title, value, icon: Icon, color, subValue, lang }) => (
-    <div className="glass-card p-6 flex flex-col h-full min-h-[130px] transition-all hover:shadow-md overflow-hidden">
-        <div className="flex items-start justify-between gap-4 mb-2">
+    <div className="glass-card p-4 sm:p-6 flex flex-col h-full min-h-[110px] sm:min-h-[130px] transition-all hover:shadow-md overflow-hidden">
+        <div className="flex items-start justify-between gap-2 sm:gap-4 mb-1 sm:mb-2">
             <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-500 leading-snug">
+                <p className="text-[11px] sm:text-sm font-medium text-slate-500 leading-snug truncate">
                     {title}
                 </p>
                 {subValue !== undefined && (
-                    <p className="text-[11px] font-bold text-dashboard-blue mt-0.5 uppercase tracking-wider">
+                    <p className="text-[9px] sm:text-[11px] font-bold text-dashboard-blue mt-0.5 uppercase tracking-wider">
                         {subValue} {lang === 'si' ? 'බිල්පත්' : 'Bills'}
                     </p>
                 )}
             </div>
-            {Icon && <Icon className="w-5 h-5 text-slate-700 flex-shrink-0 mt-0.5" />}
+            {Icon && <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700 flex-shrink-0 mt-0.5" />}
         </div>
         <div className="mt-auto">
-            <h3 className="text-2xl font-bold text-slate-900 break-words">{value}</h3>
+            <h3 className="text-lg sm:text-2xl font-bold text-slate-900 break-words">{value}</h3>
         </div>
     </div>
 );
@@ -99,16 +99,16 @@ const KpiCards = ({ isHistory, t, stats, lang }) => {
     ];
 
     return (
-        <div className="space-y-6 mb-8">
+        <div className="space-y-4 sm:space-y-6 mb-8">
             {/* Top Row - Financials (4 Columns) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                 {topRowKpis.map((kpi, index) => (
                     <KpiCard key={`top-${index}`} {...kpi} lang={lang} />
                 ))}
             </div>
 
             {/* Bottom Row - Activity (6 Columns) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-6">
                 {bottomRowKpis.map((kpi, index) => (
                     <KpiCard key={`bottom-${index}`} {...kpi} lang={lang} />
                 ))}

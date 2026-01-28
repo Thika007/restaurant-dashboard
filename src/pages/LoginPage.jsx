@@ -51,20 +51,20 @@ const LoginPage = ({ lang, setLang }) => {
     return (
         <div className="min-h-screen flex bg-white">
             {/* Top Right Controls */}
-            <div className="absolute top-6 right-6 z-50 flex items-center gap-3">
+            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-50 flex items-center gap-2 sm:gap-3">
                 <button
                     onClick={toggleFullscreen}
-                    className="p-2 bg-white/80 backdrop-blur-md rounded-lg border border-gray-200 shadow-sm text-gray-700 hover:bg-white transition-colors flex items-center justify-center"
+                    className="p-1.5 sm:p-2 bg-white/80 backdrop-blur-md rounded-lg border border-gray-200 shadow-sm text-gray-700 hover:bg-white transition-colors flex items-center justify-center"
                     title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
                 >
-                    {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                    {isFullscreen ? <Minimize className="w-4 h-4 sm:w-5 sm:h-5" /> : <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />}
                 </button>
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/80 backdrop-blur-md rounded-lg border border-gray-200 shadow-sm">
-                    <Languages className="w-4 h-4 text-gray-500" />
+                <div className="flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 bg-white/80 backdrop-blur-md rounded-lg border border-gray-200 shadow-sm">
+                    <Languages className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500" />
                     <select
                         value={lang}
                         onChange={(e) => setLang(e.target.value)}
-                        className="bg-transparent border-none text-xs font-bold text-gray-600 focus:ring-0 cursor-pointer uppercase"
+                        className="bg-transparent border-none text-[10px] sm:text-xs font-bold text-gray-600 focus:ring-0 cursor-pointer uppercase p-0"
                     >
                         <option value="en">English</option>
                         <option value="si">සිංහල</option>
@@ -82,18 +82,18 @@ const LoginPage = ({ lang, setLang }) => {
             </div>
 
             {/* Right Side - Login Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 relative">
                 <div className="max-w-md w-full">
-                    <div className="flex items-center gap-3 mb-12 justify-center lg:justify-start">
-                        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
-                            <LayoutDashboard className="w-7 h-7 text-white" />
+                    <div className="flex items-center gap-3 mb-8 lg:mb-12 justify-center lg:justify-start">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
+                            <LayoutDashboard className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
                         </div>
-                        <span className="text-2xl font-black text-gray-900 tracking-tighter uppercase">Danu Dashboard</span>
+                        <span className="text-xl sm:text-2xl font-black text-gray-900 tracking-tighter uppercase">Danu Dashboard</span>
                     </div>
 
-                    <div className="text-center lg:text-left mb-10">
-                        <h2 className="text-4xl font-bold text-gray-900 mb-2">{t.welcome}</h2>
-                        <p className="text-gray-500">{t.subtitle}</p>
+                    <div className="text-center lg:text-left mb-8 sm:mb-10">
+                        <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">{t.welcome}</h2>
+                        <p className="text-sm sm:text-base text-gray-500">{t.subtitle}</p>
                     </div>
 
                     {error && (

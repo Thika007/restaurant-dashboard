@@ -58,11 +58,11 @@ const Charts = ({ isHistory, t, chartsData }) => {
     const salesTitle = isHistory ? t.salesWeekly : t.sales24h;
     const dataKey = isHistory ? 'time' : 'time'; // Still using time/day for XAxis
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-8">
             {/* Sales Trend */}
-            <div className="glass-card p-6 min-h-[400px]">
-                <h3 className="text-lg font-bold text-slate-800 mb-6">{salesTitle}</h3>
-                <div className="h-[300px] w-full min-w-0">
+            <div className="glass-card p-4 sm:p-6 min-h-[350px] sm:min-h-[400px]">
+                <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-4 sm:mb-6">{salesTitle}</h3>
+                <div className="h-[250px] sm:h-[300px] w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={displaySalesData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -85,9 +85,9 @@ const Charts = ({ isHistory, t, chartsData }) => {
             </div>
 
             {/* Top 3 Selling Items */}
-            <div className="glass-card p-6 min-h-[400px]">
-                <h3 className="text-lg font-bold text-slate-800 mb-6">{t.topItems}</h3>
-                <div className="h-[300px] w-full min-w-0">
+            <div className="glass-card p-4 sm:p-6 min-h-[350px] sm:min-h-[400px]">
+                <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-4 sm:mb-6">{t.topItems}</h3>
+                <div className="h-[250px] sm:h-[300px] w-full min-w-0">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={topItems} layout="vertical" margin={{ left: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
@@ -105,9 +105,9 @@ const Charts = ({ isHistory, t, chartsData }) => {
             </div>
 
             {/* Order Type Pie Chart */}
-            <div className="glass-card p-6 min-h-[350px]">
-                <h3 className="text-lg font-bold text-slate-800 mb-6">{isHistory ? t.orderTypeHistory : t.orderTypeToday}</h3>
-                <div className="h-[250px]">
+            <div className="glass-card p-4 sm:p-6 min-h-[300px] sm:min-h-[350px]">
+                <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-4 sm:mb-6">{isHistory ? t.orderTypeHistory : t.orderTypeToday}</h3>
+                <div className="h-[200px] sm:h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
@@ -131,9 +131,9 @@ const Charts = ({ isHistory, t, chartsData }) => {
             </div>
 
             {/* Payment Method Donut Chart */}
-            <div className="glass-card p-6 min-h-[350px]">
-                <h3 className="text-lg font-bold text-slate-800 mb-6">{isHistory ? t.paymentHistory : t.paymentToday}</h3>
-                <div className="h-[250px]">
+            <div className="glass-card p-4 sm:p-6 min-h-[300px] sm:min-h-[350px]">
+                <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-4 sm:mb-6">{isHistory ? t.paymentHistory : t.paymentToday}</h3>
+                <div className="h-[200px] sm:h-[250px]">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
