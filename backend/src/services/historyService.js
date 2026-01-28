@@ -96,7 +96,7 @@ export const getHistorySalesTrend = async (startDate, endDate, locationId) => {
 
     let query = `
         SELECT 
-            FORMAT(bill_date, 'MM/dd') as date,
+            SUBSTRING(CONVERT(VARCHAR(10), bill_date, 101), 1, 5) as date,
             SUM(bill_amt) as revenue
         FROM bill_header
         WHERE bill_valid != 'X'
@@ -114,7 +114,7 @@ export const getHistorySalesTrend = async (startDate, endDate, locationId) => {
         request.input('endDate', sql.Date, endDate);
     }
 
-    query += ` GROUP BY FORMAT(bill_date, 'MM/dd'), CAST(bill_date AS DATE) ORDER BY CAST(bill_date AS DATE)`;
+    query += ` GROUP BY SUBSTRING(CONVERT(VARCHAR(10), bill_date, 101), 1, 5), CAST(bill_date AS DATE) ORDER BY CAST(bill_date AS DATE)`;
 
     const result = await request.query(query);
     return result.recordset;

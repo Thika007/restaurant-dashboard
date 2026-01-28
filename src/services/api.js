@@ -44,7 +44,8 @@ const handleResponse = async (response) => {
     }
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'API request failed');
+        const message = error.details || error.message || 'API request failed';
+        throw new Error(message);
     }
     return response.json();
 };

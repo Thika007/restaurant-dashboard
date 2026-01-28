@@ -9,8 +9,11 @@ const config = {
     server: process.env.DB_SERVER || 'localhost',
     database: process.env.DB_NAME || 'RESTDB28',
     options: {
-        encrypt: true, // for azure
-        trustServerCertificate: true // change to true for local dev / self-signed certs
+        encrypt: process.env.DB_ENCRYPT === 'true', // false for local, true for azure
+        trustServerCertificate: true,
+        cryptoCredentialsDetails: {
+            minVersion: 'TLSv1'
+        }
     }
 };
 
