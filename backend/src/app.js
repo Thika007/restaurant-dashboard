@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import statsRoutes from './routes/statsRoutes.js';
 import chartsRoutes from './routes/chartsRoutes.js';
 import historyRoutes from './routes/historyRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { protect } from './middleware/authMiddleware.js';
 
@@ -27,6 +28,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/stats', protect, statsRoutes);
 app.use('/api/charts', protect, chartsRoutes);
 app.use('/api/history', protect, historyRoutes);
+app.use('/api/reports', protect, reportRoutes);
 
 // Serve Static Frontend Files
 const distPath = path.join(__dirname, '../../dist');

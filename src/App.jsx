@@ -5,13 +5,15 @@ import KpiCards from './components/KpiCards';
 import Charts from './components/Charts';
 import HistorySection from './components/HistorySection';
 import LoginPage from './pages/LoginPage';
-import { LayoutDashboard, History, Settings, Calendar, Download } from 'lucide-react';
+import { Calendar, FileText, Filter, LayoutDashboard, LogOut, Search, Settings, User } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { format, subDays } from 'date-fns';
 import { translations } from './constants/translations';
 import {
   fetchTodayStats, fetchSalesTrend, fetchTopItems, fetchOrderTypes, fetchPaymentMethods,
   fetchHistory, fetchHistoryStats, fetchHistoryTrend, fetchHistoryTopItems, fetchHistoryOrderTypes, fetchHistoryPaymentMethods,
-  getAppConfig
+  getAppConfig, fetchBillReport, fetchItemReport
 } from './services/api';
 
 const ProtectedRoute = ({ children }) => {
@@ -35,10 +37,10 @@ const Dashboard = ({ lang, setLang }) => {
   const [loading, setLoading] = useState(true);
   const [activeQuickSelect, setActiveQuickSelect] = useState(null);
   const [activeReportType, setActiveReportType] = useState('bill');
+  const [billReportData, setBillReportData] = useState([]);
   const [billReportFilters, setBillReportFilters] = useState({
-    txnType: 'all',
-    orderType: 'all',
-    discountType: 'all',
+    txnType: ['all'],
+    orderType: ['all'],
     sort: 'billNo'
   });
   const [itemReportFilters, setItemReportFilters] = useState({
@@ -127,10 +129,133 @@ const Dashboard = ({ lang, setLang }) => {
       }
     };
 
-    if (activeTab === 'history' || activeTab === 'reports') {
+    if (activeTab === 'history' || (activeTab === 'reports' && activeReportType !== 'bill')) {
       loadHistoryData();
     }
   }, [activeTab, startDate, endDate]);
+
+  const loadBillReportData = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchBillReport(startDate, endDate, billReportFilters);
+      setBillReportData(data);
+    } catch (error) {
+      console.error("Failed to load bill report:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (activeTab === 'reports' && activeReportType === 'bill') {
+      loadBillReportData();
+    }
+  }, [activeTab, activeReportType, startDate, endDate, billReportFilters]);
+
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    const currencySymbol = "LKR";
+
+    // We use English labels for PDF generation to ensure character compatibility
+    // as jsPDF requires custom font embedding for Sinhala/Unicode support.
+    const pdfT = translations['en'].tabs.billReport;
+
+    // Header
+    doc.setFontSize(18);
+    doc.text(pdfT.pdfTitle, 14, 22);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`${pdfT.pdfDateRange}: ${startDate} - ${endDate}`, 14, 28);
+
+    // Filter Summary
+    let yOffset = 40;
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text(pdfT.pdfFilterSummary, 14, yOffset);
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    yOffset += 7;
+    doc.text(`${pdfT.filters.txnType.label}: ${billReportFilters.txnType.map(k => pdfT.filters.txnType[k] || k).join(', ')}`, 14, yOffset);
+    yOffset += 5;
+    doc.text(`${pdfT.filters.orderType.label}: ${billReportFilters.orderType.map(k => pdfT.filters.orderType[k] || k).join(', ')}`, 14, yOffset);
+    yOffset += 5;
+    doc.text(`${pdfT.filters.sort.label}: ${pdfT.filters.sort[billReportFilters.sort] || billReportFilters.sort}`, 14, yOffset);
+
+    // Table
+    const tableColumn = Object.values(pdfT.headers);
+    const tableRows = billReportData.map(row => [
+      row.Bill_Id,
+      parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
+      row.Discount_Amt > 0 ? parseFloat(row.Discount_Amt).toLocaleString(undefined, { minimumFractionDigits: 2 }) : 'No Discount',
+      parseFloat(row.TAX || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
+      parseFloat(row.Service_Charge || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
+      parseFloat(row.Total_Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
+      row.Transaction_Type,
+      row.Order_Type,
+      row.Remark || '-'
+    ]);
+
+    autoTable(doc, {
+      startY: yOffset + 15,
+      head: [tableColumn],
+      body: tableRows,
+      theme: 'grid',
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        valign: 'middle',
+        overflow: 'linebreak'
+      },
+      headStyles: {
+        fillColor: [240, 240, 240],
+        textColor: [80, 80, 80],
+        fontStyle: 'bold',
+        fontSize: 9
+      },
+      columnStyles: {
+        0: { cellWidth: 20 }, // Bill_Id
+        1: { cellWidth: 20, halign: 'right' }, // Amount
+        2: { cellWidth: 20, halign: 'right' }, // Discount_Amt
+        3: { cellWidth: 15, halign: 'right' }, // TAX
+        4: { cellWidth: 20, halign: 'right' }, // Service_Charge
+        5: { cellWidth: 20, halign: 'right' }, // Total_Amount
+        6: { cellWidth: 20 }, // Transaction_Type
+        7: { cellWidth: 20 }, // Order_Type
+        8: { cellWidth: 20 }  // Remark
+      },
+      didDrawPage: function (data) {
+        // Footer
+        let pageCount = doc.internal.getNumberOfPages();
+        doc.setFontSize(8);
+        doc.text('Page ' + data.pageNumber + ' of ' + pageCount, data.settings.margin.left, doc.internal.pageSize.height - 10);
+      }
+    });
+
+    // Calculate Totals
+    const totalAmount = billReportData.reduce((sum, row) => sum + parseFloat(row.Amount || 0), 0);
+    const totalDiscount = billReportData.reduce((sum, row) => sum + parseFloat(row.Discount_Amt || 0), 0);
+    const totalTax = billReportData.reduce((sum, row) => sum + parseFloat(row.TAX || 0), 0);
+    const totalServiceCharge = billReportData.reduce((sum, row) => sum + parseFloat(row.Service_Charge || 0), 0);
+    const totalFinalAmount = billReportData.reduce((sum, row) => sum + parseFloat(row.Total_Amount || 0), 0);
+
+    // Add totals to the end of the document
+    yOffset = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(10);
+    doc.setTextColor(0);
+    doc.text(`${pdfT.pdfTotals.totalAmount}: ${currencySymbol} ${totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, yOffset);
+    yOffset += 5;
+    doc.text(`${pdfT.pdfTotals.totalDiscount}: ${currencySymbol} ${totalDiscount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, yOffset);
+    yOffset += 5;
+    doc.text(`${pdfT.pdfTotals.totalTax}: ${currencySymbol} ${totalTax.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, yOffset);
+    yOffset += 5;
+    doc.text(`${pdfT.pdfTotals.totalServiceCharge}: ${currencySymbol} ${totalServiceCharge.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, yOffset);
+    yOffset += 7;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${pdfT.pdfTotals.grandTotal}: ${currencySymbol} ${totalFinalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 14, yOffset);
+
+    doc.save(`Bill_Report_${startDate}_to_${endDate}.pdf`);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -246,10 +371,15 @@ const Dashboard = ({ lang, setLang }) => {
               {/* Filter and Action Section */}
               <div className="glass-card p-6 mb-8 border border-slate-200 bg-white shadow-sm overflow-hidden relative">
                 <div className="absolute top-0 right-0 p-4">
-                  <button className="flex items-center gap-2 px-4 py-2 bg-dashboard-red/10 text-dashboard-red hover:bg-dashboard-red hover:text-white rounded-xl font-bold transition-all border border-dashboard-red/20 shadow-sm text-xs uppercase tracking-wider">
-                    <Download className="w-4 h-4" />
-                    PDF Export
-                  </button>
+                  {activeReportType === 'bill' && billReportData.length > 0 && (
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex items-center gap-2 px-4 py-2 bg-dashboard-red/10 text-dashboard-red hover:bg-dashboard-red hover:text-white rounded-xl font-bold transition-all border border-dashboard-red/20 shadow-sm text-xs uppercase tracking-wider"
+                    >
+                      <FileText className="w-4 h-4" />
+                      {lang === 'si' ? 'PDF අපනයනය' : 'PDF Export'}
+                    </button>
+                  )}
                 </div>
 
                 {activeReportType === 'bill' && (
@@ -257,46 +387,71 @@ const Dashboard = ({ lang, setLang }) => {
                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Filter Options</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       {/* Transaction Type Filter */}
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">{t.tabs.billReport.filters.txnType.label}</label>
-                        <select
-                          value={billReportFilters.txnType}
-                          onChange={(e) => setBillReportFilters({ ...billReportFilters, txnType: e.target.value })}
-                          className="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-semibold focus:ring-dashboard-blue focus:border-dashboard-blue"
-                        >
+                      <div className="space-y-1.5 border-r border-slate-100 pr-4">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 block mb-2">{t.tabs.billReport.filters.txnType.label}</label>
+                        <div className="max-h-40 overflow-y-auto pr-2 space-y-1">
                           {Object.entries(t.tabs.billReport.filters.txnType).filter(([k]) => k !== 'label').map(([k, v]) => (
-                            <option key={k} value={k}>{v}</option>
+                            <label key={k} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={billReportFilters.txnType.includes(k)}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  let newValues = [...billReportFilters.txnType];
+                                  if (k === 'all') {
+                                    newValues = ['all'];
+                                  } else {
+                                    newValues = newValues.filter(v => v !== 'all');
+                                    if (isChecked) {
+                                      newValues.push(k);
+                                    } else {
+                                      newValues = newValues.filter(v => v !== k);
+                                    }
+                                    if (newValues.length === 0) newValues = ['all'];
+                                  }
+                                  setBillReportFilters({ ...billReportFilters, txnType: newValues });
+                                }}
+                                className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                              />
+                              <span className="text-xs font-semibold text-slate-600 select-none">{v}</span>
+                            </label>
                           ))}
-                        </select>
+                        </div>
                       </div>
 
                       {/* Order Type Filter */}
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">{t.tabs.billReport.filters.orderType.label}</label>
-                        <select
-                          value={billReportFilters.orderType}
-                          onChange={(e) => setBillReportFilters({ ...billReportFilters, orderType: e.target.value })}
-                          className="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-semibold focus:ring-dashboard-blue focus:border-dashboard-blue"
-                        >
+                      <div className="space-y-1.5 border-r border-slate-100 pr-4">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 block mb-2">{t.tabs.billReport.filters.orderType.label}</label>
+                        <div className="max-h-40 overflow-y-auto pr-2 space-y-1">
                           {Object.entries(t.tabs.billReport.filters.orderType).filter(([k]) => k !== 'label').map(([k, v]) => (
-                            <option key={k} value={k}>{v}</option>
+                            <label key={k} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={billReportFilters.orderType.includes(k)}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  let newValues = [...billReportFilters.orderType];
+                                  if (k === 'all') {
+                                    newValues = ['all'];
+                                  } else {
+                                    newValues = newValues.filter(v => v !== 'all');
+                                    if (isChecked) {
+                                      newValues.push(k);
+                                    } else {
+                                      newValues = newValues.filter(v => v !== k);
+                                    }
+                                    if (newValues.length === 0) newValues = ['all'];
+                                  }
+                                  setBillReportFilters({ ...billReportFilters, orderType: newValues });
+                                }}
+                                className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                              />
+                              <span className="text-xs font-semibold text-slate-600 select-none">{v}</span>
+                            </label>
                           ))}
-                        </select>
+                        </div>
                       </div>
 
-                      {/* Discount Type Filter */}
-                      <div className="space-y-1.5">
-                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">{t.tabs.billReport.filters.discountType.label}</label>
-                        <select
-                          value={billReportFilters.discountType}
-                          onChange={(e) => setBillReportFilters({ ...billReportFilters, discountType: e.target.value })}
-                          className="w-full bg-slate-50 border-slate-200 rounded-xl text-sm font-semibold focus:ring-dashboard-blue focus:border-dashboard-blue"
-                        >
-                          {Object.entries(t.tabs.billReport.filters.discountType).filter(([k]) => k !== 'label').map(([k, v]) => (
-                            <option key={k} value={k}>{v}</option>
-                          ))}
-                        </select>
-                      </div>
 
                       {/* Sort Filter */}
                       <div className="space-y-1.5">
@@ -422,15 +577,43 @@ const Dashboard = ({ lang, setLang }) => {
                         </tr>
                       </thead>
                       <tbody>
-                        <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                          <td colSpan={Object.keys(t.tabs.billReport.headers).length} className="px-4 py-12 text-center">
-                            <div className="flex flex-col items-center justify-center text-slate-400">
-                              <Calendar className="w-8 h-8 mb-2 opacity-20" />
-                              <p className="text-sm font-medium">No report data to display</p>
-                              <p className="text-xs">Adjust filters and generate to view results</p>
-                            </div>
-                          </td>
-                        </tr>
+                        {billReportData.length > 0 ? (
+                          billReportData.map((row, idx) => (
+                            <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">{row.Bill_Id}</td>
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">{parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">
+                                {row.Discount_Amt > 0 ? parseFloat(row.Discount_Amt).toLocaleString(undefined, { minimumFractionDigits: 2 }) : (lang === 'si' ? 'වට්ටම් රහිත' : 'No Discount')}
+                              </td>
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">{parseFloat(row.TAX || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">{parseFloat(row.Service_Charge || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              <td className="px-4 py-3 text-xs font-bold text-dashboard-blue">{parseFloat(row.Total_Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              <td className="px-4 py-3 text-xs">
+                                <span className={`px-2 py-1 rounded-lg font-bold text-[10px] uppercase ${row.Transaction_Type === 'Cash' ? 'bg-green-100 text-green-700' :
+                                  row.Transaction_Type === 'Cancel bill' ? 'bg-red-100 text-red-700' :
+                                    row.Transaction_Type === 'Incomplete Bill' ? 'bg-orange-100 text-orange-700' :
+                                      row.Transaction_Type === 'Void bill' ? 'bg-slate-100 text-slate-700' :
+                                        row.Transaction_Type === 'Credit' ? 'bg-purple-100 text-purple-700' :
+                                          'bg-blue-100 text-blue-700'
+                                  }`}>
+                                  {row.Transaction_Type}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-600">{row.Order_Type}</td>
+                              <td className="px-4 py-3 text-xs text-slate-500 italic">{row.Remark || '-'}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                            <td colSpan={Object.keys(t.tabs.billReport.headers).length} className="px-4 py-12 text-center">
+                              <div className="flex flex-col items-center justify-center text-slate-400">
+                                <Calendar className="w-8 h-8 mb-2 opacity-20" />
+                                <p className="text-sm font-medium">No report data to display</p>
+                                <p className="text-xs">Adjust filters and generate to view results</p>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>

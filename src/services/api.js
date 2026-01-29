@@ -188,3 +188,43 @@ export const fetchHistoryPaymentMethods = async (startDate, endDate) => {
     });
     return handleResponse(response);
 };
+
+export const fetchBillReport = async (startDate, endDate, filters = {}) => {
+    const cfg = await loadConfig();
+    let url = `${cfg.baseUrl}/reports/bill`;
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (filters.txnType) {
+        const txnType = Array.isArray(filters.txnType) ? filters.txnType.join(',') : filters.txnType;
+        params.append('txnType', txnType);
+    }
+    if (filters.orderType) {
+        const orderType = Array.isArray(filters.orderType) ? filters.orderType.join(',') : filters.orderType;
+        params.append('orderType', orderType);
+    }
+    if (filters.sort) params.append('sort', filters.sort);
+
+    if (params.toString()) url += `?${params.toString()}`;
+
+    const response = await fetch(url, {
+        headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+};
+
+export const fetchItemReport = async (startDate, endDate, filters = {}) => {
+    const cfg = await loadConfig();
+    let url = `${cfg.baseUrl}/reports/item`;
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+
+    // Add other filters if needed in the future
+    if (params.toString()) url += `?${params.toString()}`;
+
+    const response = await fetch(url, {
+        headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+};

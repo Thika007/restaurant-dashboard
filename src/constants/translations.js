@@ -27,7 +27,7 @@ export const translations = {
                 headers: {
                     billId: "Bill ID",
                     amount: "Amount",
-                    discountType: "Discount Type",
+                    discountType: "Discount",
                     tax: "TAX",
                     serviceCharge: "Service Charge",
                     totalAmount: "Total Amount",
@@ -40,16 +40,15 @@ export const translations = {
                         label: "Transaction Type",
                         all: "All",
                         cash: "Cash",
-                        visa: "Visa",
-                        master: "Master",
-                        amex: "Amex",
-                        uberEats: "Uber Eats",
-                        pickMe: "PickMe Food",
-                        complimentary: "Complimentary",
-                        wastage: "Wastage",
-                        staff: "Staff",
+                        cardPay: "Card Pay",
                         credit: "Credit",
-                        cancelled: "Cancelled"
+                        creditPaid: "Credit paid",
+                        refund: "Refund",
+                        complimentary: "Complementary",
+                        void: "Void",
+                        staff: "Staff",
+                        cancel: "Cancel bill",
+                        incomplete: "Incomplete Bill"
                     },
                     orderType: {
                         label: "Order Type",
@@ -60,7 +59,7 @@ export const translations = {
                         quick: "Quick Service"
                     },
                     discountType: {
-                        label: "Discount Type",
+                        label: "Discount",
                         all: "All",
                         manual: "By Manual Amount",
                         percentage: "By Percentage",
@@ -72,6 +71,16 @@ export const translations = {
                         maxMin: "Max to Min",
                         billNo: "Order by Bill No"
                     }
+                },
+                pdfTitle: "Bill Report",
+                pdfDateRange: "Date Range",
+                pdfFilterSummary: "Filter Summary",
+                pdfTotals: {
+                    totalAmount: "Total Amount",
+                    totalDiscount: "Total Discount",
+                    totalTax: "Total TAX",
+                    totalServiceCharge: "Total Service Charge",
+                    grandTotal: "Grand Total"
                 }
             },
             itemReport: {
@@ -242,7 +251,7 @@ export const translations = {
                 headers: {
                     billId: "බිල්පත් අංකය",
                     amount: "වටිනාකම",
-                    discountType: "වට්ටම් වර්ගය",
+                    discountType: "වට්ටම්",
                     tax: "බදු (TAX)",
                     serviceCharge: "සේවා ගාස්තුව",
                     totalAmount: "මුළු එකතුව",
@@ -255,16 +264,15 @@ export const translations = {
                         label: "ගනුදෙනු වර්ගය",
                         all: "සියල්ල",
                         cash: "මුදල් (Cash)",
-                        visa: "Visa",
-                        master: "Master",
-                        amex: "Amex",
-                        uberEats: "Uber Eats",
-                        pickMe: "PickMe Food",
-                        complimentary: "හිමිකරුගේ (Complimentary)",
-                        wastage: "අපතේ යාම් (Wastage)",
-                        staff: "කාර්ය මණ්ඩලය (Staff)",
+                        cardPay: "කාඩ්පත් (Card Pay)",
                         credit: "ණය (Credit)",
-                        cancelled: "අවලංගු කළ (Cancelled)"
+                        creditPaid: "ණය ගෙවීම් (Credit paid)",
+                        refund: "ප්‍රතිපූරණ (Refund)",
+                        complimentary: "හිමිකරුගේ (Complimentary)",
+                        void: "අවලංගු (Void)",
+                        staff: "කාර්ය මණ්ඩලය (Staff)",
+                        cancel: "අවලංගු කළ බිල්පත් (Cancel bill)",
+                        incomplete: "අසම්පූර්ණ බිල්පත් (Incomplete Bill)"
                     },
                     orderType: {
                         label: "ඇණවුම් වර්ගය",
@@ -275,7 +283,7 @@ export const translations = {
                         quick: "කඩිනම් සේවාව"
                     },
                     discountType: {
-                        label: "වට්ටම් වර්ගය",
+                        label: "වට්ටම්",
                         all: "සියල්ල",
                         manual: "නිශ්චිත අගයක්",
                         percentage: "ප්‍රතිශතයක්",
@@ -287,6 +295,16 @@ export const translations = {
                         maxMin: "වැඩිම සිට අඩුම",
                         billNo: "බිල්පත් අංකය අනුව"
                     }
+                },
+                pdfTitle: "බිල්පත් වාර්තාව",
+                pdfDateRange: "කාල පරාසය",
+                pdfFilterSummary: "පෙරහන් සාරාංශය",
+                pdfTotals: {
+                    totalAmount: "මුළු එකතුව",
+                    totalDiscount: "මුළු වට්ටම",
+                    totalTax: "මුළු බදු",
+                    totalServiceCharge: "මුළු සේවා ගාස්තුව",
+                    grandTotal: "ශුද්ධ එකතුව"
                 }
             },
             itemReport: {
