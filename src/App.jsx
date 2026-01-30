@@ -450,7 +450,7 @@ const Dashboard = ({ lang, setLang }) => {
               {/* Filter and Action Section */}
               <div className="glass-card p-6 mb-8 border border-slate-200 bg-white shadow-sm overflow-hidden relative">
                 <div className="absolute top-0 right-0 p-4">
-                  {(activeReportType === 'bill' && billReportData.length > 0) || (activeReportType === 'item' && itemReportData.length > 0) && (
+                  {((activeReportType === 'bill' && billReportData.length > 0) || (activeReportType === 'item' && itemReportData.length > 0)) && (
                     <button
                       onClick={handleExportPDF}
                       className="flex items-center gap-2 px-4 py-2 bg-dashboard-red/10 text-dashboard-red hover:bg-dashboard-red hover:text-white rounded-xl font-bold transition-all border border-dashboard-red/20 shadow-sm text-xs uppercase tracking-wider"
