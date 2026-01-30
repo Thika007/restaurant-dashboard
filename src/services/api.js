@@ -220,7 +220,18 @@ export const fetchItemReport = async (startDate, endDate, filters = {}) => {
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
 
-    // Add other filters if needed in the future
+    if (filters.mainType) {
+        const typeSelection = Array.isArray(filters.mainType) ? filters.mainType.join(',') : filters.mainType;
+        params.append('typeSelection', typeSelection);
+    }
+    if (filters.descSort) params.append('descSort', filters.descSort);
+    if (filters.qtySort) params.append('qtySort', filters.qtySort);
+    if (filters.amtSort) params.append('amtSort', filters.amtSort);
+    if (filters.remark) {
+        const remarkValue = Array.isArray(filters.remark) ? filters.remark.join(',') : filters.remark;
+        params.append('remark', remarkValue);
+    }
+
     if (params.toString()) url += `?${params.toString()}`;
 
     const response = await fetch(url, {

@@ -90,7 +90,6 @@ export const translations = {
                     description: "Description",
                     qty: "Qty",
                     amount: "Amount",
-                    specialFilter: "Special Filter",
                     reason: "Reason"
                 },
                 filters: {
@@ -98,16 +97,10 @@ export const translations = {
                         label: "Type Selection",
                         all: "All Types",
                         cash: "Cash",
-                        visa: "Visa",
-                        master: "Master",
-                        amex: "Amex",
-                        uberEats: "Uber Eats",
-                        pickMe: "PickMe Food",
+                        card: "Card",
                         complimentary: "Complimentary",
-                        wastage: "Wastage",
                         staff: "Staff",
                         credit: "Credit",
-                        cancelled: "Cancelled",
                         table: "Table Order",
                         takeaway: "Take Away",
                         delivery: "Delivery",
@@ -130,17 +123,6 @@ export const translations = {
                         all: "Default",
                         maxMin: "Max to Min",
                         minMax: "Min to Max"
-                    },
-                    special: {
-                        label: "Special Filter",
-                        all: "All",
-                        void: "Void",
-                        wastage: "Wastage",
-                        refund: "Refund",
-                        food: "Food",
-                        beverage: "Beverage",
-                        tobacco: "Tobacco",
-                        other: "Other"
                     },
                     remark: {
                         label: "Remark",
@@ -314,7 +296,6 @@ export const translations = {
                     description: "විස්තරය",
                     qty: "ප්‍රමාණය",
                     amount: "වටිනාකම",
-                    specialFilter: "විශේෂ පෙරහන",
                     reason: "හේතුව"
                 },
                 filters: {
@@ -322,16 +303,10 @@ export const translations = {
                         label: "වර්ගය තෝරන්න",
                         all: "සියලුම වර්ග",
                         cash: "මුදල් (Cash)",
-                        visa: "Visa",
-                        master: "Master",
-                        amex: "Amex",
-                        uberEats: "Uber Eats",
-                        pickMe: "PickMe Food",
+                        card: "කාඩ්පත් (Card)",
                         complimentary: "හිමිකරුගේ (Complimentary)",
-                        wastage: "අපතේ යාම් (Wastage)",
                         staff: "කාර්ය මණ්ඩලය (Staff)",
                         credit: "ණය (Credit)",
-                        cancelled: "අවලංගු කළ (Cancelled)",
                         table: "මේස ඇණවුම්",
                         takeaway: "රැගෙන යාම",
                         delivery: "බෙදා හැරීම",
@@ -354,17 +329,6 @@ export const translations = {
                         all: "සාමාන්‍ය",
                         maxMin: "වැඩිම සිට අඩුම",
                         minMax: "අඩුම සිට වැඩිම",
-                    },
-                    special: {
-                        label: "විශේෂ පෙරහන",
-                        all: "සියල්ල",
-                        void: "අවලංගු (Void)",
-                        wastage: "අපතේ යාම් (Wastage)",
-                        refund: "ප්‍රතිපූරණය (Refund)",
-                        food: "ආහාර (Food)",
-                        beverage: "පාන වර්ග (Beverage)",
-                        tobacco: "දුම්කොළ (Tobacco)",
-                        other: "වෙනත් (Other)"
                     },
                     remark: {
                         label: "විශේෂ සටහන්",
