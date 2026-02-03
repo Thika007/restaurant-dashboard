@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import KpiCards from './components/KpiCards';
@@ -13,7 +13,7 @@ import { translations } from './constants/translations';
 import {
   fetchTodayStats, fetchSalesTrend, fetchTopItems, fetchOrderTypes, fetchPaymentMethods,
   fetchHistory, fetchHistoryStats, fetchHistoryTrend, fetchHistoryTopItems, fetchHistoryOrderTypes, fetchHistoryPaymentMethods,
-  getAppConfig, fetchBillReport, fetchItemReport
+  getAppConfig, fetchBillReport, fetchItemReport, fetchCardTypes, fetchLocations
 } from './services/api';
 
 const ProtectedRoute = ({ children }) => {
@@ -51,6 +51,13 @@ const Dashboard = ({ lang, setLang }) => {
     amtSort: 'all',
     remark: ['all']
   });
+  const [cardTypes, setCardTypes] = useState([]);
+  const [selectedLocation, setSelectedLocation] = useState('000');
+  const [locations, setLocations] = useState([]);
+
+  // Load user from localStorage
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isAdmin = user.supervisor === 'Y' || user.alowmaster === 'Y';
   const t = translations[lang];
 
   const handleQuickSelect = (days, label) => {
@@ -62,23 +69,27 @@ const Dashboard = ({ lang, setLang }) => {
   };
 
   // Load initial config
-  React.useEffect(() => {
+  useEffect(() => {
     getAppConfig().then(cfg => {
       if (cfg.refreshInterval) {
         setRefreshInterval(cfg.refreshInterval);
       }
     });
+
+    fetchCardTypes().then(data => {
+      setCardTypes(data);
+    }).catch(err => console.error("Failed to fetch card types:", err));
   }, []);
 
   const loadDashboardData = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
       const [statsData, trendData, topItemsData, orderTypesData, paymentMethodsData] = await Promise.all([
-        fetchTodayStats(),
-        fetchSalesTrend(),
-        fetchTopItems(),
-        fetchOrderTypes(),
-        fetchPaymentMethods()
+        fetchTodayStats(selectedLocation),
+        fetchSalesTrend(selectedLocation),
+        fetchTopItems(selectedLocation),
+        fetchOrderTypes(selectedLocation),
+        fetchPaymentMethods(selectedLocation)
       ]);
       setStats(statsData);
       setChartsData({
@@ -95,7 +106,7 @@ const Dashboard = ({ lang, setLang }) => {
   };
 
   // Auto-refresh logic for Real-time tab
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeTab === 'real-time') {
       loadDashboardData();
       const interval = setInterval(() => {
@@ -103,18 +114,24 @@ const Dashboard = ({ lang, setLang }) => {
       }, refreshInterval);
       return () => clearInterval(interval);
     }
-  }, [activeTab, refreshInterval]);
+  }, [activeTab, refreshInterval, selectedLocation]);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (isAdmin) {
+      fetchLocations().then(setLocations).catch(console.error);
+    }
+  }, [isAdmin]);
+
+  useEffect(() => {
     const loadHistoryData = async () => {
       try {
         const [historyData, statsData, trendData, topItemsData, orderTypesData, paymentMethodsData] = await Promise.all([
-          fetchHistory(startDate, endDate),
-          fetchHistoryStats(startDate, endDate),
-          fetchHistoryTrend(startDate, endDate),
-          fetchHistoryTopItems(startDate, endDate),
-          fetchHistoryOrderTypes(startDate, endDate),
-          fetchHistoryPaymentMethods(startDate, endDate)
+          fetchHistory(startDate, endDate, selectedLocation),
+          fetchHistoryStats(startDate, endDate, selectedLocation),
+          fetchHistoryTrend(startDate, endDate, selectedLocation),
+          fetchHistoryTopItems(startDate, endDate, selectedLocation),
+          fetchHistoryOrderTypes(startDate, endDate, selectedLocation),
+          fetchHistoryPaymentMethods(startDate, endDate, selectedLocation)
         ]);
         setHistory(historyData);
         setHistoryStats(statsData);
@@ -132,12 +149,12 @@ const Dashboard = ({ lang, setLang }) => {
     if (activeTab === 'history' || (activeTab === 'reports' && activeReportType !== 'bill')) {
       loadHistoryData();
     }
-  }, [activeTab, startDate, endDate]);
+  }, [activeTab, startDate, endDate, selectedLocation]);
 
   const loadBillReportData = async () => {
     try {
       setLoading(true);
-      const data = await fetchBillReport(startDate, endDate, billReportFilters);
+      const data = await fetchBillReport(startDate, endDate, billReportFilters, selectedLocation);
       setBillReportData(data);
     } catch (error) {
       console.error("Failed to load bill report:", error);
@@ -146,16 +163,16 @@ const Dashboard = ({ lang, setLang }) => {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeTab === 'reports' && activeReportType === 'bill') {
       loadBillReportData();
     }
-  }, [activeTab, activeReportType, startDate, endDate, billReportFilters]);
+  }, [activeTab, activeReportType, startDate, endDate, billReportFilters, selectedLocation]);
 
   const loadItemReportData = async () => {
     try {
       setLoading(true);
-      const data = await fetchItemReport(startDate, endDate, itemReportFilters);
+      const data = await fetchItemReport(startDate, endDate, itemReportFilters, selectedLocation);
       setItemReportData(data);
     } catch (error) {
       console.error("Failed to load item report:", error);
@@ -164,11 +181,11 @@ const Dashboard = ({ lang, setLang }) => {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (activeTab === 'reports' && activeReportType === 'item') {
       loadItemReportData();
     }
-  }, [activeTab, activeReportType, startDate, endDate, itemReportFilters]);
+  }, [activeTab, activeReportType, startDate, endDate, itemReportFilters, selectedLocation]);
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
@@ -345,6 +362,9 @@ const Dashboard = ({ lang, setLang }) => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         tTabs={t.tabs}
+        locations={locations}
+        selectedLocation={selectedLocation}
+        setSelectedLocation={setSelectedLocation}
       />
 
       <main className="max-w-[1600px] mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -469,32 +489,59 @@ const Dashboard = ({ lang, setLang }) => {
                       <div className="space-y-1.5 border-r border-slate-100 pr-4">
                         <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 block mb-2">{t.tabs.billReport.filters.txnType.label}</label>
                         <div className="max-h-40 overflow-y-auto pr-2 space-y-1">
-                          {Object.entries(t.tabs.billReport.filters.txnType).filter(([k]) => k !== 'label').map(([k, v]) => (
-                            <label key={k} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={billReportFilters.txnType.includes(k)}
-                                onChange={(e) => {
-                                  const isChecked = e.target.checked;
-                                  let newValues = [...billReportFilters.txnType];
-                                  if (k === 'all') {
-                                    newValues = ['all'];
-                                  } else {
-                                    newValues = newValues.filter(v => v !== 'all');
-                                    if (isChecked) {
-                                      newValues.push(k);
+                          {Object.entries(t.tabs.billReport.filters.txnType).filter(([k]) => k !== 'label').map(([k, v]) => {
+                            if (k === 'cardPay') {
+                              return cardTypes.map(card => (
+                                <label key={card.cc_no} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={billReportFilters.txnType.includes(`CC_${card.cc_no}`)}
+                                    onChange={(e) => {
+                                      const isChecked = e.target.checked;
+                                      let newValues = [...billReportFilters.txnType];
+                                      const cardVal = `CC_${card.cc_no}`;
+                                      newValues = newValues.filter(v => v !== 'all');
+                                      if (isChecked) {
+                                        newValues.push(cardVal);
+                                      } else {
+                                        newValues = newValues.filter(v => v !== cardVal);
+                                      }
+                                      if (newValues.length === 0) newValues = ['all'];
+                                      setBillReportFilters({ ...billReportFilters, txnType: newValues });
+                                    }}
+                                    className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                                  />
+                                  <span className="text-xs font-semibold text-slate-600 select-none">{card.cc_name}</span>
+                                </label>
+                              ));
+                            }
+                            return (
+                              <label key={k} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={billReportFilters.txnType.includes(k)}
+                                  onChange={(e) => {
+                                    const isChecked = e.target.checked;
+                                    let newValues = [...billReportFilters.txnType];
+                                    if (k === 'all') {
+                                      newValues = ['all'];
                                     } else {
-                                      newValues = newValues.filter(v => v !== k);
+                                      newValues = newValues.filter(v => v !== 'all');
+                                      if (isChecked) {
+                                        newValues.push(k);
+                                      } else {
+                                        newValues = newValues.filter(v => v !== k);
+                                      }
+                                      if (newValues.length === 0) newValues = ['all'];
                                     }
-                                    if (newValues.length === 0) newValues = ['all'];
-                                  }
-                                  setBillReportFilters({ ...billReportFilters, txnType: newValues });
-                                }}
-                                className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
-                              />
-                              <span className="text-xs font-semibold text-slate-600 select-none">{v}</span>
-                            </label>
-                          ))}
+                                    setBillReportFilters({ ...billReportFilters, txnType: newValues });
+                                  }}
+                                  className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                                />
+                                <span className="text-xs font-semibold text-slate-600 select-none">{v}</span>
+                              </label>
+                            );
+                          })}
                         </div>
                       </div>
 
@@ -557,32 +604,59 @@ const Dashboard = ({ lang, setLang }) => {
                       <div className="space-y-1.5 border-r border-slate-100 pr-4">
                         <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 block mb-2">{t.tabs.itemReport.filters.mainType.label}</label>
                         <div className="max-h-40 overflow-y-auto pr-2 space-y-1">
-                          {Object.entries(t.tabs.itemReport.filters.mainType).filter(([k]) => k !== 'label').map(([k, v]) => (
-                            <label key={k} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={itemReportFilters.mainType.includes(k)}
-                                onChange={(e) => {
-                                  const isChecked = e.target.checked;
-                                  let newValues = [...itemReportFilters.mainType];
-                                  if (k === 'all') {
-                                    newValues = ['all'];
-                                  } else {
-                                    newValues = newValues.filter(v => v !== 'all');
-                                    if (isChecked) {
-                                      newValues.push(k);
+                          {Object.entries(t.tabs.itemReport.filters.mainType).filter(([k]) => k !== 'label').map(([k, v]) => {
+                            if (k === 'card') {
+                              return cardTypes.map(card => (
+                                <label key={card.cc_no} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={itemReportFilters.mainType.includes(`CC_${card.cc_no}`)}
+                                    onChange={(e) => {
+                                      const isChecked = e.target.checked;
+                                      let newValues = [...itemReportFilters.mainType];
+                                      const cardVal = `CC_${card.cc_no}`;
+                                      newValues = newValues.filter(v => v !== 'all');
+                                      if (isChecked) {
+                                        newValues.push(cardVal);
+                                      } else {
+                                        newValues = newValues.filter(v => v !== cardVal);
+                                      }
+                                      if (newValues.length === 0) newValues = ['all'];
+                                      setItemReportFilters({ ...itemReportFilters, mainType: newValues });
+                                    }}
+                                    className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                                  />
+                                  <span className="text-xs font-semibold text-slate-600 select-none">{card.cc_name}</span>
+                                </label>
+                              ));
+                            }
+                            return (
+                              <label key={k} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={itemReportFilters.mainType.includes(k)}
+                                  onChange={(e) => {
+                                    const isChecked = e.target.checked;
+                                    let newValues = [...itemReportFilters.mainType];
+                                    if (k === 'all') {
+                                      newValues = ['all'];
                                     } else {
-                                      newValues = newValues.filter(v => v !== k);
+                                      newValues = newValues.filter(v => v !== 'all');
+                                      if (isChecked) {
+                                        newValues.push(k);
+                                      } else {
+                                        newValues = newValues.filter(v => v !== k);
+                                      }
+                                      if (newValues.length === 0) newValues = ['all'];
                                     }
-                                    if (newValues.length === 0) newValues = ['all'];
-                                  }
-                                  setItemReportFilters({ ...itemReportFilters, mainType: newValues });
-                                }}
-                                className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
-                              />
-                              <span className="text-xs font-semibold text-slate-600 select-none">{v}</span>
-                            </label>
-                          ))}
+                                    setItemReportFilters({ ...itemReportFilters, mainType: newValues });
+                                  }}
+                                  className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                                />
+                                <span className="text-xs font-semibold text-slate-600 select-none">{v}</span>
+                              </label>
+                            );
+                          })}
                         </div>
                       </div>
 

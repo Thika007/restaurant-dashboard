@@ -2,8 +2,10 @@ import historyService from '../services/historyService.js';
 
 export const getHistory = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
-        const history = await historyService.getHistory(startDate, endDate, req.user.locationId);
+        const { startDate, endDate, locationId: queryLocId } = req.query;
+        const isAdmin = req.user.supervisor === 'Y' || req.user.alowmaster === 'Y';
+        const locationId = (isAdmin && queryLocId) ? queryLocId : req.user.locationId;
+        const history = await historyService.getHistory(startDate, endDate, locationId);
         res.json(history);
     } catch (error) {
         console.error("History Controller Error:", error);
@@ -13,8 +15,10 @@ export const getHistory = async (req, res) => {
 
 export const getHistoryStats = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
-        const stats = await historyService.getHistoryStats(startDate, endDate, req.user.locationId);
+        const { startDate, endDate, locationId: queryLocId } = req.query;
+        const isAdmin = req.user.supervisor === 'Y' || req.user.alowmaster === 'Y';
+        const locationId = (isAdmin && queryLocId) ? queryLocId : req.user.locationId;
+        const stats = await historyService.getHistoryStats(startDate, endDate, locationId);
         res.json(stats);
     } catch (error) {
         console.error("History Stats Controller Error:", error);
@@ -24,8 +28,10 @@ export const getHistoryStats = async (req, res) => {
 
 export const getHistorySalesTrend = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
-        const trend = await historyService.getHistorySalesTrend(startDate, endDate, req.user.locationId);
+        const { startDate, endDate, locationId: queryLocId } = req.query;
+        const isAdmin = req.user.supervisor === 'Y' || req.user.alowmaster === 'Y';
+        const locationId = (isAdmin && queryLocId) ? queryLocId : req.user.locationId;
+        const trend = await historyService.getHistorySalesTrend(startDate, endDate, locationId);
         res.json(trend);
     } catch (error) {
         console.error("History Trend Error:", error);
@@ -35,8 +41,10 @@ export const getHistorySalesTrend = async (req, res) => {
 
 export const getHistoryTopItems = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
-        const items = await historyService.getHistoryTopItems(startDate, endDate, req.user.locationId);
+        const { startDate, endDate, locationId: queryLocId } = req.query;
+        const isAdmin = req.user.supervisor === 'Y' || req.user.alowmaster === 'Y';
+        const locationId = (isAdmin && queryLocId) ? queryLocId : req.user.locationId;
+        const items = await historyService.getHistoryTopItems(startDate, endDate, locationId);
         res.json(items);
     } catch (error) {
         console.error("History Top Items Error:", error);
@@ -46,8 +54,10 @@ export const getHistoryTopItems = async (req, res) => {
 
 export const getHistoryOrderTypes = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
-        const types = await historyService.getHistoryOrderTypes(startDate, endDate, req.user.locationId);
+        const { startDate, endDate, locationId: queryLocId } = req.query;
+        const isAdmin = req.user.supervisor === 'Y' || req.user.alowmaster === 'Y';
+        const locationId = (isAdmin && queryLocId) ? queryLocId : req.user.locationId;
+        const types = await historyService.getHistoryOrderTypes(startDate, endDate, locationId);
         res.json(types);
     } catch (error) {
         console.error("History Order Types Error:", error);
@@ -57,8 +67,10 @@ export const getHistoryOrderTypes = async (req, res) => {
 
 export const getHistoryPaymentMethods = async (req, res) => {
     try {
-        const { startDate, endDate } = req.query;
-        const methods = await historyService.getHistoryPaymentMethods(startDate, endDate, req.user.locationId);
+        const { startDate, endDate, locationId: queryLocId } = req.query;
+        const isAdmin = req.user.supervisor === 'Y' || req.user.alowmaster === 'Y';
+        const locationId = (isAdmin && queryLocId) ? queryLocId : req.user.locationId;
+        const methods = await historyService.getHistoryPaymentMethods(startDate, endDate, locationId);
         res.json(methods);
     } catch (error) {
         console.error("History Payment Methods Error:", error);

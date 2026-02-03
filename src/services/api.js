@@ -65,44 +65,53 @@ export const login = async (userId, password) => {
     return data;
 };
 
-export const fetchTodayStats = async () => {
+export const fetchTodayStats = async (locationId) => {
     const cfg = await loadConfig();
-    const response = await fetch(`${cfg.baseUrl}/stats/today`, {
+    let url = `${cfg.baseUrl}/stats/today`;
+    if (locationId) url += `?locationId=${locationId}`;
+    const response = await fetch(url, {
         headers: getAuthHeaders()
     });
     return handleResponse(response);
 };
 
-export const fetchSalesTrend = async () => {
+export const fetchSalesTrend = async (locationId) => {
     const cfg = await loadConfig();
-    const response = await fetch(`${cfg.baseUrl}/charts/sales-trend`, {
+    let url = `${cfg.baseUrl}/charts/sales-trend`;
+    if (locationId) url += `?locationId=${locationId}`;
+    const response = await fetch(url, {
         headers: getAuthHeaders()
     });
     return handleResponse(response);
 };
 
-export const fetchTopItems = async () => {
+export const fetchTopItems = async (locationId) => {
     const cfg = await loadConfig();
-    const response = await fetch(`${cfg.baseUrl}/charts/top-items`, {
+    let url = `${cfg.baseUrl}/charts/top-items`;
+    if (locationId) url += `?locationId=${locationId}`;
+    const response = await fetch(url, {
         headers: getAuthHeaders()
     });
     return handleResponse(response);
 };
 
-export const fetchOrderTypes = async () => {
+export const fetchOrderTypes = async (locationId) => {
     const cfg = await loadConfig();
-    const response = await fetch(`${cfg.baseUrl}/charts/order-types`, {
+    let url = `${cfg.baseUrl}/charts/order-types`;
+    if (locationId) url += `?locationId=${locationId}`;
+    const response = await fetch(url, {
         headers: getAuthHeaders()
     });
     return handleResponse(response);
 };
 
-export const fetchHistory = async (startDate, endDate) => {
+export const fetchHistory = async (startDate, endDate, locationId) => {
     const cfg = await loadConfig();
     let url = `${cfg.baseUrl}/history`;
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
+    if (locationId) params.append('locationId', locationId);
     if (params.toString()) url += `?${params.toString()}`;
 
     const response = await fetch(url, {
@@ -111,12 +120,13 @@ export const fetchHistory = async (startDate, endDate) => {
     return handleResponse(response);
 };
 
-export const fetchHistoryStats = async (startDate, endDate) => {
+export const fetchHistoryStats = async (startDate, endDate, locationId) => {
     const cfg = await loadConfig();
     let url = `${cfg.baseUrl}/history/stats`;
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
+    if (locationId) params.append('locationId', locationId);
     if (params.toString()) url += `?${params.toString()}`;
 
     const response = await fetch(url, {
@@ -125,12 +135,13 @@ export const fetchHistoryStats = async (startDate, endDate) => {
     return handleResponse(response);
 };
 
-export const fetchHistoryTrend = async (startDate, endDate) => {
+export const fetchHistoryTrend = async (startDate, endDate, locationId) => {
     const cfg = await loadConfig();
     let url = `${cfg.baseUrl}/history/trend`;
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
+    if (locationId) params.append('locationId', locationId);
     if (params.toString()) url += `?${params.toString()}`;
 
     const response = await fetch(url, {
@@ -139,12 +150,13 @@ export const fetchHistoryTrend = async (startDate, endDate) => {
     return handleResponse(response);
 };
 
-export const fetchHistoryTopItems = async (startDate, endDate) => {
+export const fetchHistoryTopItems = async (startDate, endDate, locationId) => {
     const cfg = await loadConfig();
     let url = `${cfg.baseUrl}/history/top-items`;
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
+    if (locationId) params.append('locationId', locationId);
     if (params.toString()) url += `?${params.toString()}`;
 
     const response = await fetch(url, {
@@ -153,12 +165,13 @@ export const fetchHistoryTopItems = async (startDate, endDate) => {
     return handleResponse(response);
 };
 
-export const fetchHistoryOrderTypes = async (startDate, endDate) => {
+export const fetchHistoryOrderTypes = async (startDate, endDate, locationId) => {
     const cfg = await loadConfig();
     let url = `${cfg.baseUrl}/history/order-types`;
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
+    if (locationId) params.append('locationId', locationId);
     if (params.toString()) url += `?${params.toString()}`;
 
     const response = await fetch(url, {
@@ -167,20 +180,23 @@ export const fetchHistoryOrderTypes = async (startDate, endDate) => {
     return handleResponse(response);
 };
 
-export const fetchPaymentMethods = async () => {
+export const fetchPaymentMethods = async (locationId) => {
     const cfg = await loadConfig();
-    const response = await fetch(`${cfg.baseUrl}/charts/payment-methods`, {
+    let url = `${cfg.baseUrl}/charts/payment-methods`;
+    if (locationId) url += `?locationId=${locationId}`;
+    const response = await fetch(url, {
         headers: getAuthHeaders()
     });
     return handleResponse(response);
 };
 
-export const fetchHistoryPaymentMethods = async (startDate, endDate) => {
+export const fetchHistoryPaymentMethods = async (startDate, endDate, locationId) => {
     const cfg = await loadConfig();
     let url = `${cfg.baseUrl}/history/payment-methods`;
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
+    if (locationId) params.append('locationId', locationId);
     if (params.toString()) url += `?${params.toString()}`;
 
     const response = await fetch(url, {
@@ -189,12 +205,13 @@ export const fetchHistoryPaymentMethods = async (startDate, endDate) => {
     return handleResponse(response);
 };
 
-export const fetchBillReport = async (startDate, endDate, filters = {}) => {
+export const fetchBillReport = async (startDate, endDate, filters = {}, locationId) => {
     const cfg = await loadConfig();
     let url = `${cfg.baseUrl}/reports/bill`;
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
+    if (locationId) params.append('locationId', locationId);
     if (filters.txnType) {
         const txnType = Array.isArray(filters.txnType) ? filters.txnType.join(',') : filters.txnType;
         params.append('txnType', txnType);
@@ -213,12 +230,13 @@ export const fetchBillReport = async (startDate, endDate, filters = {}) => {
     return handleResponse(response);
 };
 
-export const fetchItemReport = async (startDate, endDate, filters = {}) => {
+export const fetchItemReport = async (startDate, endDate, filters = {}, locationId) => {
     const cfg = await loadConfig();
     let url = `${cfg.baseUrl}/reports/item`;
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
+    if (locationId) params.append('locationId', locationId);
 
     if (filters.mainType) {
         const typeSelection = Array.isArray(filters.mainType) ? filters.mainType.join(',') : filters.mainType;
@@ -235,6 +253,22 @@ export const fetchItemReport = async (startDate, endDate, filters = {}) => {
     if (params.toString()) url += `?${params.toString()}`;
 
     const response = await fetch(url, {
+        headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+};
+
+export const fetchCardTypes = async () => {
+    const cfg = await loadConfig();
+    const response = await fetch(`${cfg.baseUrl}/reports/card-types`, {
+        headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+};
+
+export const fetchLocations = async () => {
+    const cfg = await loadConfig();
+    const response = await fetch(`${cfg.baseUrl}/auth/locations`, {
         headers: getAuthHeaders()
     });
     return handleResponse(response);

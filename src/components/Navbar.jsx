@@ -1,7 +1,7 @@
 import React from 'react';
-import { Bell, LogOut, Search, User, Languages, LayoutDashboard, History, Maximize, Minimize, FileBarChart } from 'lucide-react';
+import { Bell, LogOut, Search, User, Languages, LayoutDashboard, History, Maximize, Minimize, FileBarChart, MapPin } from 'lucide-react';
 
-const Navbar = ({ lang, setLang, t, activeTab, setActiveTab, tTabs }) => {
+const Navbar = ({ lang, setLang, t, activeTab, setActiveTab, tTabs, locations, selectedLocation, setSelectedLocation }) => {
     const [isFullscreen, setIsFullscreen] = React.useState(false);
     const userString = localStorage.getItem('user');
     const user = userString ? JSON.parse(userString) : null;
@@ -100,6 +100,24 @@ const Navbar = ({ lang, setLang, t, activeTab, setActiveTab, tTabs }) => {
                         <option value="si">SI</option>
                     </select>
                 </div>
+
+                {user && (user.supervisor === 'Y' || user.alowmaster === 'Y') && (
+                    <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-50 rounded-lg border border-blue-100">
+                        <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-dashboard-blue" />
+                        <select
+                            value={selectedLocation}
+                            onChange={(e) => setSelectedLocation(e.target.value)}
+                            className="bg-transparent border-none text-[10px] sm:text-xs font-bold text-dashboard-blue focus:ring-0 cursor-pointer p-0"
+                        >
+                            <option value="000">{lang === 'si' ? 'සියලුම ස්ථාන' : 'ALL LOCATIONS'}</option>
+                            {locations.map(loc => (
+                                <option key={loc} value={loc}>
+                                    {loc}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
                 <div className="hidden sm:block h-8 w-[1px] bg-slate-200"></div>
 

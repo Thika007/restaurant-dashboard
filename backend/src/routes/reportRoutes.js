@@ -6,5 +6,6 @@ const router = express.Router();
 
 router.get('/bill', protect, reportController.getBillReport);
 router.get('/item', protect, reportController.getItemReport);
+router.get('/card-types', protect, reportController.getCardTypes);
 
 export default router;

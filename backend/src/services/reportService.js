@@ -28,18 +28,27 @@ export const getBillReport = async (startDate, endDate, filters = {}) => {
                             WHEN t.type_code = 'VV' THEN 'Void bill'
                             WHEN t.type_code = 'XX' THEN 'Cancel bill'
                             WHEN t.type_code = 'ST' THEN 'Staff'
+                            WHEN t.type_code = 'WA' THEN 'Wastage'
                             ELSE t.type_code 
                         END
                     FROM bill_tran t 
                     LEFT JOIN cc_mast cc ON LTRIM(RTRIM(t.key_code)) = LTRIM(RTRIM(cc.cc_no))
                     WHERE t.bill_no = h.bill_no 
-                    AND t.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'CO', 'VV', 'XX', 'ST')
+                    AND t.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'CO', 'VV', 'XX', 'ST', 'WA')
                 )
             END as Transaction_Type,
             CASE 
                 WHEN h.bill_valid = 'X' THEN 'X'
                 WHEN EXISTS (SELECT 1 FROM bill_tran t2 WHERE t2.bill_no = h.bill_no AND t2.tran_valid = 'Y') THEN 'Y'
-                ELSE (SELECT TOP 1 t.type_code FROM bill_tran t WHERE t.bill_no = h.bill_no AND t.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'CO', 'VV', 'XX', 'ST'))
+                ELSE (
+                    SELECT TOP 1 
+                        CASE 
+                            WHEN t3.type_code = 'CC' THEN 'CC_' + LTRIM(RTRIM(t3.key_code))
+                            ELSE t3.type_code 
+                        END
+                    FROM bill_tran t3 
+                    WHERE t3.bill_no = h.bill_no AND t3.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'CO', 'VV', 'XX', 'ST', 'WA')
+                )
             END as Raw_Type,
             CASE 
                 WHEN h.Ord_Type = 'TO' THEN 'Table Order'
@@ -58,6 +67,12 @@ export const getBillReport = async (startDate, endDate, filters = {}) => {
         query += ` AND CAST(h.bill_date AS DATE) BETWEEN @startDate AND @endDate`;
         request.input('startDate', sql.Date, startDate);
         request.input('endDate', sql.Date, endDate);
+    }
+
+    if (filters.locationId && String(filters.locationId).trim() !== '000') {
+        const trimmedLocId = String(filters.locationId).trim();
+        query += ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
+        request.input('locationId', sql.VarChar, trimmedLocId);
     }
 
     // Apply Order Type Filter
@@ -98,22 +113,47 @@ export const getBillReport = async (startDate, endDate, filters = {}) => {
             void: ['VV'],
             staff: ['ST'],
             cancel: ['X', 'XX'],
-            incomplete: ['Y']
+            incomplete: ['Y'],
+            wastage: ['WA']
         };
 
         const dbTxnTypes = [];
+        const cardTypes = [];
         filters.txnType.forEach(t => {
-            if (txnMap[t]) dbTxnTypes.push(...txnMap[t]);
+            if (t.startsWith('CC_')) {
+                cardTypes.push(t.substring(3));
+            } else if (txnMap[t]) {
+                dbTxnTypes.push(...txnMap[t]);
+            }
         });
 
-        if (dbTxnTypes.length > 0) {
+        if (dbTxnTypes.length > 0 || cardTypes.length > 0) {
             const params = [];
             dbTxnTypes.forEach((val, i) => {
                 const paramName = `txnType${i}`;
                 request.input(paramName, sql.VarChar, val);
                 params.push(`@${paramName}`);
             });
-            finalQuery += ` AND Raw_Type IN (${params.join(',')})`;
+
+            let txnClause = '';
+            if (params.length > 0) {
+                txnClause = `Raw_Type IN (${params.join(',')})`;
+            }
+
+            if (cardTypes.length > 0) {
+                const cardParams = [];
+                cardTypes.forEach((val, i) => {
+                    const paramName = `cardType${i}`;
+                    request.input(paramName, sql.VarChar, 'CC_' + val);
+                    cardParams.push(`@${paramName}`);
+                });
+                const cardClause = `Raw_Type IN (${cardParams.join(',')})`;
+                txnClause = txnClause ? `(${txnClause} OR ${cardClause})` : cardClause;
+            }
+
+            if (txnClause) {
+                finalQuery += ` AND ${txnClause}`;
+            }
         }
     }
 
@@ -150,7 +190,7 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
             CASE 
                 WHEN h.bill_valid = 'X' THEN 'X'
                 WHEN EXISTS (SELECT 1 FROM bill_tran t2 WHERE t2.bill_no = h.bill_no AND t2.tran_valid = 'Y') THEN 'Y'
-                ELSE (SELECT TOP 1 t3.type_code FROM bill_tran t3 WHERE t3.bill_no = h.bill_no AND t3.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'CO', 'VV', 'XX', 'ST'))
+                ELSE (SELECT TOP 1 t3.type_code FROM bill_tran t3 WHERE t3.bill_no = h.bill_no AND t3.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'CO', 'VV', 'XX', 'ST', 'WA'))
             END as Raw_Type,
             h.remarks as RemarkRow
         FROM bill_tran t
@@ -164,6 +204,12 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
         request.input('endDate', sql.Date, endDate);
     }
 
+    if (filters.locationId && String(filters.locationId).trim() !== '000') {
+        const trimmedLocId = String(filters.locationId).trim();
+        query += ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
+        request.input('locationId', sql.VarChar, trimmedLocId);
+    }
+
     // Apply Filters (Multi-select logic)
     if (filters.typeSelection && !filters.typeSelection.includes('all')) {
         const txnMap = {
@@ -171,7 +217,8 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
             card: ['CC'],
             complimentary: ['CO'],
             staff: ['ST'],
-            credit: ['CS']
+            credit: ['CS'],
+            wastage: ['WA']
         };
 
         const ordTypeMap = {
@@ -183,9 +230,14 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
 
         const dbTxnTypes = [];
         const dbOrdTypes = [];
+        const cardTypes = [];
 
         filters.typeSelection.forEach(t => {
-            if (txnMap[t]) dbTxnTypes.push(...txnMap[t]);
+            if (t.startsWith('CC_')) {
+                cardTypes.push(t.substring(3));
+            } else if (txnMap[t]) {
+                dbTxnTypes.push(...txnMap[t]);
+            }
             if (ordTypeMap[t]) dbOrdTypes.push(ordTypeMap[t]);
         });
 
@@ -198,6 +250,16 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
                 params.push(`@${paramName}`);
             });
             filterClauses.push(`EXISTS (SELECT 1 FROM bill_tran t4 WHERE t4.bill_no = h.bill_no AND t4.type_code IN (${params.join(',')}))`);
+        }
+
+        if (cardTypes.length > 0) {
+            const cardParams = [];
+            cardTypes.forEach((val, i) => {
+                const paramName = `cardTypeSel${i}`;
+                request.input(paramName, sql.VarChar, val);
+                cardParams.push(`@${paramName}`);
+            });
+            filterClauses.push(`EXISTS (SELECT 1 FROM bill_tran t4 WHERE t4.bill_no = h.bill_no AND t4.type_code = 'CC' AND LTRIM(RTRIM(t4.key_code)) IN (${cardParams.join(',')}))`);
         }
 
         if (dbOrdTypes.length > 0) {
@@ -250,7 +312,14 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
     return result.recordset;
 };
 
+export const getCardTypes = async () => {
+    const pool = await getConnection();
+    const result = await pool.request().query('SELECT cc_no, cc_name FROM cc_mast ORDER BY cc_name');
+    return result.recordset;
+};
+
 export default {
     getBillReport,
-    getItemReport
+    getItemReport,
+    getCardTypes
 };

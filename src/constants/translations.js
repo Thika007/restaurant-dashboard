@@ -48,7 +48,8 @@ export const translations = {
                         void: "Void",
                         staff: "Staff",
                         cancel: "Cancel bill",
-                        incomplete: "Incomplete Bill"
+                        incomplete: "Incomplete Bill",
+                        wastage: "Wastage"
                     },
                     orderType: {
                         label: "Order Type",
@@ -101,6 +102,7 @@ export const translations = {
                         complimentary: "Complimentary",
                         staff: "Staff",
                         credit: "Credit",
+                        wastage: "Wastage",
                         table: "Table Order",
                         takeaway: "Take Away",
                         delivery: "Delivery",
@@ -254,7 +256,8 @@ export const translations = {
                         void: "අවලංගු (Void)",
                         staff: "කාර්ය මණ්ඩලය (Staff)",
                         cancel: "අවලංගු කළ බිල්පත් (Cancel bill)",
-                        incomplete: "අසම්පූර්ණ බිල්පත් (Incomplete Bill)"
+                        incomplete: "අසම්පූර්ණ බිල්පත් (Incomplete Bill)",
+                        wastage: "අපතේ යාම් (Wastage)"
                     },
                     orderType: {
                         label: "ඇණවුම් වර්ගය",
@@ -307,6 +310,7 @@ export const translations = {
                         complimentary: "හිමිකරුගේ (Complimentary)",
                         staff: "කාර්ය මණ්ඩලය (Staff)",
                         credit: "ණය (Credit)",
+                        wastage: "අපතේ යාම් (Wastage)",
                         table: "මේස ඇණවුම්",
                         takeaway: "රැගෙන යාම",
                         delivery: "බෙදා හැරීම",
