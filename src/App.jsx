@@ -13,7 +13,8 @@ import { translations } from './constants/translations';
 import {
   fetchTodayStats, fetchSalesTrend, fetchTopItems, fetchOrderTypes, fetchPaymentMethods,
   fetchHistory, fetchHistoryStats, fetchHistoryTrend, fetchHistoryTopItems, fetchHistoryOrderTypes, fetchHistoryPaymentMethods,
-  getAppConfig, fetchBillReport, fetchItemReport, fetchCardTypes, fetchLocations
+  getAppConfig, fetchBillReport, fetchItemReport, fetchCardTypes, fetchLocations,
+  fetchCategories, fetchSubCategories
 } from './services/api';
 
 const ProtectedRoute = ({ children }) => {
@@ -45,15 +46,20 @@ const Dashboard = ({ lang, setLang }) => {
   });
   const [itemReportData, setItemReportData] = useState([]);
   const [itemReportFilters, setItemReportFilters] = useState({
-    mainType: ['all'],
+    txnType: ['all'],
+    orderType: ['all'],
+    categories: ['all'],
+    subCategories: ['all'],
+    itemName: '',
     descSort: 'all',
     qtySort: 'all',
-    amtSort: 'all',
-    remark: ['all']
+    amtSort: 'all'
   });
   const [cardTypes, setCardTypes] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState('000');
   const [locations, setLocations] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
 
   // Load user from localStorage
   const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -79,7 +85,24 @@ const Dashboard = ({ lang, setLang }) => {
     fetchCardTypes().then(data => {
       setCardTypes(data);
     }).catch(err => console.error("Failed to fetch card types:", err));
+
+    fetchCategories().then(data => {
+      setCategories(data);
+    }).catch(err => console.error("Failed to fetch categories:", err));
   }, []);
+
+  useEffect(() => {
+    // Fetch subcategories whenever categories filter changes (if a single category is selected)
+    // Or just fetch all subcategories if preferred. 
+    // Let's fetch all initially or filter by the first selected category if only one is selected.
+    const selectedCat = itemReportFilters.categories.length === 1 && itemReportFilters.categories[0] !== 'all'
+      ? itemReportFilters.categories[0]
+      : 'all';
+
+    fetchSubCategories(selectedCat).then(data => {
+      setSubCategories(data);
+    }).catch(err => console.error("Failed to fetch sub-categories:", err));
+  }, [itemReportFilters.categories]);
 
   const loadDashboardData = async (silent = false) => {
     try {
@@ -190,6 +213,7 @@ const Dashboard = ({ lang, setLang }) => {
   const handleExportPDF = () => {
     const doc = new jsPDF();
     const currencySymbol = "LKR";
+    let yOffset = 40;
 
     if (activeReportType === 'bill') {
       // We use English labels for PDF generation to ensure character compatibility
@@ -204,7 +228,7 @@ const Dashboard = ({ lang, setLang }) => {
       doc.text(`${pdfT.pdfDateRange}: ${startDate} - ${endDate}`, 14, 28);
 
       // Filter Summary
-      let yOffset = 40;
+      yOffset = 40;
       doc.setFontSize(12);
       doc.setTextColor(0);
       doc.text(pdfT.pdfFilterSummary, 14, yOffset);
@@ -296,24 +320,61 @@ const Dashboard = ({ lang, setLang }) => {
 
       // Header
       doc.setFontSize(18);
-      doc.text("Item Report", 14, 22);
+      doc.text(pdfT.pdfTitle, 14, 22);
       doc.setFontSize(10);
       doc.setTextColor(100);
       doc.text(`Date Range: ${startDate} - ${endDate}`, 14, 28);
 
+      // Filter Summary
+      yOffset = 40;
+      doc.setFontSize(12);
+      doc.setTextColor(0);
+      doc.text(pdfT.pdfFilterSummary, 14, yOffset);
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      yOffset += 7;
+
+      // Map filters to human readable names
+      const txnNames = itemReportFilters.txnType.map(k => pdfT.filters.txnType[k] || k).join(', ');
+      const orderNames = itemReportFilters.orderType.map(k => pdfT.filters.orderType[k] || k).join(', ');
+
+      const catNames = itemReportFilters.categories.includes('all')
+        ? 'All'
+        : itemReportFilters.categories.map(code => {
+          const cat = categories.find(c => String(c.Dept_Code) === String(code));
+          return cat ? cat.Dept_Name : code;
+        }).join(', ');
+
+      const subNames = itemReportFilters.subCategories.includes('all')
+        ? 'All'
+        : itemReportFilters.subCategories.map(id => {
+          const sub = subCategories.find(s => String(s.Class_id) === String(id));
+          return sub ? sub.Class_Desc : id;
+        }).join(', ');
+
+      doc.text(`${pdfT.filters.txnType.label}: ${txnNames}`, 14, yOffset);
+      yOffset += 5;
+      doc.text(`${pdfT.filters.orderType.label}: ${orderNames}`, 14, yOffset);
+      yOffset += 5;
+      doc.text(`${pdfT.filters.category.label}: ${catNames}`, 14, yOffset);
+      yOffset += 5;
+      doc.text(`${pdfT.filters.subCategory.label}: ${subNames}`, 14, yOffset);
+
+      if (itemReportFilters.itemName) {
+        yOffset += 5;
+        doc.text(`${pdfT.filters.search.label}: ${itemReportFilters.itemName}`, 14, yOffset);
+      }
+
       // Table
       const tableColumn = Object.values(pdfT.headers);
       const tableRows = itemReportData.map(row => [
-        row.Bill_Id,
-        row.KOTNo || '-',
         row.Description,
         row.Qty,
-        parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
-        row.Reason || '-'
+        parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })
       ]);
 
       autoTable(doc, {
-        startY: 40,
+        startY: yOffset + 10,
         head: [tableColumn],
         body: tableRows,
         theme: 'grid',
@@ -340,7 +401,7 @@ const Dashboard = ({ lang, setLang }) => {
       const totalAmount = itemReportData.reduce((sum, row) => sum + parseFloat(row.Amount || 0), 0);
       const totalQty = itemReportData.reduce((sum, row) => sum + parseFloat(row.Qty || 0), 0);
 
-      let yOffset = doc.lastAutoTable.finalY + 10;
+      yOffset = doc.lastAutoTable.finalY + 10;
       doc.setFontSize(10);
       doc.setTextColor(0);
       doc.text(`Total Quantity: ${totalQty}`, 14, yOffset);
@@ -599,79 +660,20 @@ const Dashboard = ({ lang, setLang }) => {
                 {activeReportType === 'item' && (
                   <div className="mt-8">
                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-4">Filter Options</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                      {/* Type Selection multi-select */}
-                      <div className="space-y-1.5 border-r border-slate-100 pr-4">
-                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 block mb-2">{t.tabs.itemReport.filters.mainType.label}</label>
-                        <div className="max-h-40 overflow-y-auto pr-2 space-y-1">
-                          {Object.entries(t.tabs.itemReport.filters.mainType).filter(([k]) => k !== 'label').map(([k, v]) => {
-                            if (k === 'card') {
-                              return cardTypes.map(card => (
-                                <label key={card.cc_no} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
-                                  <input
-                                    type="checkbox"
-                                    checked={itemReportFilters.mainType.includes(`CC_${card.cc_no}`)}
-                                    onChange={(e) => {
-                                      const isChecked = e.target.checked;
-                                      let newValues = [...itemReportFilters.mainType];
-                                      const cardVal = `CC_${card.cc_no}`;
-                                      newValues = newValues.filter(v => v !== 'all');
-                                      if (isChecked) {
-                                        newValues.push(cardVal);
-                                      } else {
-                                        newValues = newValues.filter(v => v !== cardVal);
-                                      }
-                                      if (newValues.length === 0) newValues = ['all'];
-                                      setItemReportFilters({ ...itemReportFilters, mainType: newValues });
-                                    }}
-                                    className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
-                                  />
-                                  <span className="text-xs font-semibold text-slate-600 select-none">{card.cc_name}</span>
-                                </label>
-                              ));
-                            }
-                            return (
-                              <label key={k} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
-                                <input
-                                  type="checkbox"
-                                  checked={itemReportFilters.mainType.includes(k)}
-                                  onChange={(e) => {
-                                    const isChecked = e.target.checked;
-                                    let newValues = [...itemReportFilters.mainType];
-                                    if (k === 'all') {
-                                      newValues = ['all'];
-                                    } else {
-                                      newValues = newValues.filter(v => v !== 'all');
-                                      if (isChecked) {
-                                        newValues.push(k);
-                                      } else {
-                                        newValues = newValues.filter(v => v !== k);
-                                      }
-                                      if (newValues.length === 0) newValues = ['all'];
-                                    }
-                                    setItemReportFilters({ ...itemReportFilters, mainType: newValues });
-                                  }}
-                                  className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
-                                />
-                                <span className="text-xs font-semibold text-slate-600 select-none">{v}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
 
-                      {/* Remark filter multi-select */}
+                      {/* Transaction Type Filter */}
                       <div className="space-y-1.5 border-r border-slate-100 pr-4">
-                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 block mb-2">{t.tabs.itemReport.filters.remark.label}</label>
+                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 block mb-2">{t.tabs.itemReport.filters.txnType.label}</label>
                         <div className="max-h-40 overflow-y-auto pr-2 space-y-1">
-                          {Object.entries(t.tabs.itemReport.filters.remark).filter(([k]) => k !== 'label').map(([k, v]) => (
+                          {Object.entries(t.tabs.itemReport.filters.txnType).filter(([k]) => k !== 'label').map(([k, v]) => (
                             <label key={k} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
                               <input
                                 type="checkbox"
-                                checked={itemReportFilters.remark.includes(k)}
+                                checked={itemReportFilters.txnType.includes(k)}
                                 onChange={(e) => {
                                   const isChecked = e.target.checked;
-                                  let newValues = [...itemReportFilters.remark];
+                                  let newValues = [...itemReportFilters.txnType];
                                   if (k === 'all') {
                                     newValues = ['all'];
                                   } else {
@@ -683,7 +685,7 @@ const Dashboard = ({ lang, setLang }) => {
                                     }
                                     if (newValues.length === 0) newValues = ['all'];
                                   }
-                                  setItemReportFilters({ ...itemReportFilters, remark: newValues });
+                                  setItemReportFilters({ ...itemReportFilters, txnType: newValues });
                                 }}
                                 className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
                               />
@@ -693,16 +695,140 @@ const Dashboard = ({ lang, setLang }) => {
                         </div>
                       </div>
 
-                      {/* Sort Filters Group */}
-                      <div className="space-y-4 lg:col-span-1 xl:col-span-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {/* Order Type Filter */}
+                      <div className="space-y-1.5 border-r border-slate-100 pr-4">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 block mb-2">{t.tabs.itemReport.filters.orderType.label}</label>
+                        <div className="max-h-40 overflow-y-auto pr-2 space-y-1">
+                          {Object.entries(t.tabs.itemReport.filters.orderType).filter(([k]) => k !== 'label').map(([k, v]) => (
+                            <label key={k} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={itemReportFilters.orderType.includes(k)}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  let newValues = [...itemReportFilters.orderType];
+                                  if (k === 'all') {
+                                    newValues = ['all'];
+                                  } else {
+                                    newValues = newValues.filter(v => v !== 'all');
+                                    if (isChecked) {
+                                      newValues.push(k);
+                                    } else {
+                                      newValues = newValues.filter(v => v !== k);
+                                    }
+                                    if (newValues.length === 0) newValues = ['all'];
+                                  }
+                                  setItemReportFilters({ ...itemReportFilters, orderType: newValues });
+                                }}
+                                className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                              />
+                              <span className="text-xs font-semibold text-slate-600 select-none">{v}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Category Filter */}
+                      <div className="space-y-1.5 border-r border-slate-100 pr-4">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 block mb-2">{t.tabs.itemReport.filters.category.label}</label>
+                        <div className="max-h-40 overflow-y-auto pr-2 space-y-1">
+                          <label className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={itemReportFilters.categories.includes('all')}
+                              onChange={(e) => setItemReportFilters({ ...itemReportFilters, categories: ['all'], subCategories: ['all'] })}
+                              className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                            />
+                            <span className="text-xs font-semibold text-slate-600 select-none">All Categories</span>
+                          </label>
+                          {categories.map(cat => (
+                            <label key={cat.Dept_Code} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={itemReportFilters.categories.includes(String(cat.Dept_Code))}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  let newValues = [...itemReportFilters.categories].filter(v => v !== 'all');
+                                  const val = String(cat.Dept_Code);
+                                  if (isChecked) {
+                                    newValues.push(val);
+                                  } else {
+                                    newValues = newValues.filter(v => v !== val);
+                                  }
+                                  if (newValues.length === 0) newValues = ['all'];
+                                  setItemReportFilters({ ...itemReportFilters, categories: newValues, subCategories: ['all'] });
+                                }}
+                                className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                              />
+                              <span className="text-xs font-semibold text-slate-600 select-none">{cat.Dept_Name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Sub-Category Filter */}
+                      <div className="space-y-1.5 border-r border-slate-100 pr-4">
+                        <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 block mb-2">{t.tabs.itemReport.filters.subCategory.label}</label>
+                        <div className="max-h-40 overflow-y-auto pr-2 space-y-1">
+                          <label className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={itemReportFilters.subCategories.includes('all')}
+                              onChange={(e) => setItemReportFilters({ ...itemReportFilters, subCategories: ['all'] })}
+                              className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                            />
+                            <span className="text-xs font-semibold text-slate-600 select-none">All Sub Categories</span>
+                          </label>
+                          {subCategories.map(sub => (
+                            <label key={`${sub.Class_id}-${sub.Class_Desc}`} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={itemReportFilters.subCategories.includes(String(sub.Class_id))}
+                                onChange={(e) => {
+                                  const isChecked = e.target.checked;
+                                  let newValues = [...itemReportFilters.subCategories].filter(v => v !== 'all');
+                                  const val = String(sub.Class_id);
+                                  if (isChecked) {
+                                    newValues.push(val);
+                                  } else {
+                                    newValues = newValues.filter(v => v !== val);
+                                  }
+                                  if (newValues.length === 0) newValues = ['all'];
+                                  setItemReportFilters({ ...itemReportFilters, subCategories: newValues });
+                                }}
+                                className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                              />
+                              <span className="text-xs font-semibold text-slate-600 select-none">{sub.Class_Desc}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Search and Sort */}
+                      <div className="space-y-4 lg:col-span-2 xl:col-span-2">
+                        {/* Search bar */}
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] font-bold text-slate-500 uppercase ml-1">{t.tabs.itemReport.filters.search.label}</label>
+                          <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                              type="text"
+                              value={itemReportFilters.itemName}
+                              onChange={(e) => setItemReportFilters({ ...itemReportFilters, itemName: e.target.value })}
+                              placeholder={t.tabs.itemReport.filters.search.placeholder}
+                              className="w-full bg-slate-50 border-slate-200 rounded-xl text-xs font-semibold focus:ring-dashboard-blue focus:border-dashboard-blue pl-9 py-2"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           {/* Description sort */}
                           <div className="space-y-1.5">
                             <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">{t.tabs.itemReport.filters.descSort.label}</label>
                             <select
                               value={itemReportFilters.descSort}
-                              onChange={(e) => setItemReportFilters({ ...itemReportFilters, descSort: e.target.value })}
-                              className="w-full bg-slate-50 border-slate-200 rounded-xl text-xs font-semibold focus:ring-dashboard-blue focus:border-dashboard-blue py-2"
+                              onChange={(e) => setItemReportFilters({ ...itemReportFilters, descSort: e.target.value, qtySort: 'all', amtSort: 'all' })}
+                              className="w-full bg-slate-50 border-slate-200 rounded-xl text-[10px] font-semibold focus:ring-dashboard-blue focus:border-dashboard-blue px-2 py-1.5"
                             >
                               {Object.entries(t.tabs.itemReport.filters.descSort).filter(([k]) => k !== 'label').map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
@@ -715,8 +841,8 @@ const Dashboard = ({ lang, setLang }) => {
                             <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">{t.tabs.itemReport.filters.qtySort.label}</label>
                             <select
                               value={itemReportFilters.qtySort}
-                              onChange={(e) => setItemReportFilters({ ...itemReportFilters, qtySort: e.target.value })}
-                              className="w-full bg-slate-50 border-slate-200 rounded-xl text-xs font-semibold focus:ring-dashboard-blue focus:border-dashboard-blue py-2"
+                              onChange={(e) => setItemReportFilters({ ...itemReportFilters, qtySort: e.target.value, descSort: 'all', amtSort: 'all' })}
+                              className="w-full bg-slate-50 border-slate-200 rounded-xl text-[10px] font-semibold focus:ring-dashboard-blue focus:border-dashboard-blue px-2 py-1.5"
                             >
                               {Object.entries(t.tabs.itemReport.filters.qtySort).filter(([k]) => k !== 'label').map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
@@ -729,8 +855,8 @@ const Dashboard = ({ lang, setLang }) => {
                             <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">{t.tabs.itemReport.filters.amtSort.label}</label>
                             <select
                               value={itemReportFilters.amtSort}
-                              onChange={(e) => setItemReportFilters({ ...itemReportFilters, amtSort: e.target.value })}
-                              className="w-full bg-slate-50 border-slate-200 rounded-xl text-xs font-semibold focus:ring-dashboard-blue focus:border-dashboard-blue py-2"
+                              onChange={(e) => setItemReportFilters({ ...itemReportFilters, amtSort: e.target.value, descSort: 'all', qtySort: 'all' })}
+                              className="w-full bg-slate-50 border-slate-200 rounded-xl text-[10px] font-semibold focus:ring-dashboard-blue focus:border-dashboard-blue px-2 py-1.5"
                             >
                               {Object.entries(t.tabs.itemReport.filters.amtSort).filter(([k]) => k !== 'label').map(([k, v]) => (
                                 <option key={k} value={k}>{v}</option>
@@ -805,7 +931,7 @@ const Dashboard = ({ lang, setLang }) => {
                       <thead>
                         <tr className="bg-slate-50/80 border-b border-slate-200">
                           {Object.values(t.tabs.itemReport.headers).map((header, idx) => (
-                            <th key={idx} className="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 whitespace-nowrap">
+                            <th key={idx} className={`px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 whitespace-nowrap ${header === t.tabs.itemReport.headers.qty || header === t.tabs.itemReport.headers.amount ? 'text-right' : ''}`}>
                               {header}
                             </th>
                           ))}
@@ -815,26 +941,36 @@ const Dashboard = ({ lang, setLang }) => {
                         {itemReportData.length > 0 ? (
                           itemReportData.map((row, idx) => (
                             <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">{row.Bill_Id}</td>
-                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">{row.KOTNo}</td>
                               <td className="px-4 py-3 text-xs font-semibold text-slate-700">{row.Description}</td>
-                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">{row.Qty}</td>
-                              <td className="px-4 py-3 text-xs font-bold text-dashboard-blue">{parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                              <td className="px-4 py-3 text-xs text-slate-500 italic">{row.Reason || '-'}</td>
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-700 text-right">{row.Qty}</td>
+                              <td className="px-4 py-3 text-xs font-bold text-dashboard-blue text-right">{parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                             </tr>
                           ))
                         ) : (
                           <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                            <td colSpan={Object.keys(t.tabs.itemReport.headers).length} className="px-4 py-12 text-center">
+                            <td colSpan={3} className="px-4 py-12 text-center">
                               <div className="flex flex-col items-center justify-center text-slate-400">
                                 <Calendar className="w-8 h-8 mb-2 opacity-20" />
-                                <p className="text-sm font-medium">No item report data to display</p>
+                                <p className="text-sm font-medium">No item data to display</p>
                                 <p className="text-xs">Adjust filters and generate to view results</p>
                               </div>
                             </td>
                           </tr>
                         )}
                       </tbody>
+                      {itemReportData.length > 0 && (
+                        <tfoot className="bg-slate-50/80 border-t-2 border-slate-200">
+                          <tr>
+                            <td className="px-4 py-4 text-[10px] font-black uppercase text-slate-500">{lang === 'si' ? 'එකතුව' : 'TOTAL'}</td>
+                            <td className="px-4 py-4 text-sm font-black text-slate-700 text-right">
+                              {itemReportData.reduce((sum, row) => sum + parseFloat(row.Qty || 0), 0)}
+                            </td>
+                            <td className="px-4 py-4 text-sm font-black text-dashboard-blue text-right">
+                              LKR {itemReportData.reduce((sum, row) => sum + parseFloat(row.Amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      )}
                     </table>
                   </div>
                 ) : (

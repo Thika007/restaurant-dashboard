@@ -238,20 +238,48 @@ export const fetchItemReport = async (startDate, endDate, filters = {}, location
     if (endDate) params.append('endDate', endDate);
     if (locationId) params.append('locationId', locationId);
 
-    if (filters.mainType) {
-        const typeSelection = Array.isArray(filters.mainType) ? filters.mainType.join(',') : filters.mainType;
-        params.append('typeSelection', typeSelection);
+    if (filters.txnType) {
+        const txnType = Array.isArray(filters.txnType) ? filters.txnType.join(',') : filters.txnType;
+        params.append('txnType', txnType);
     }
+    if (filters.orderType) {
+        const orderType = Array.isArray(filters.orderType) ? filters.orderType.join(',') : filters.orderType;
+        params.append('orderType', orderType);
+    }
+    if (filters.categories) {
+        const cats = Array.isArray(filters.categories) ? filters.categories.join(',') : filters.categories;
+        params.append('categories', cats);
+    }
+    if (filters.subCategories) {
+        const subCats = Array.isArray(filters.subCategories) ? filters.subCategories.join(',') : filters.subCategories;
+        params.append('subCategories', subCats);
+    }
+    if (filters.itemName) params.append('itemName', filters.itemName);
+
     if (filters.descSort) params.append('descSort', filters.descSort);
     if (filters.qtySort) params.append('qtySort', filters.qtySort);
     if (filters.amtSort) params.append('amtSort', filters.amtSort);
-    if (filters.remark) {
-        const remarkValue = Array.isArray(filters.remark) ? filters.remark.join(',') : filters.remark;
-        params.append('remark', remarkValue);
-    }
 
     if (params.toString()) url += `?${params.toString()}`;
 
+    const response = await fetch(url, {
+        headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+};
+
+export const fetchCategories = async () => {
+    const cfg = await loadConfig();
+    const response = await fetch(`${cfg.baseUrl}/reports/categories`, {
+        headers: getAuthHeaders()
+    });
+    return handleResponse(response);
+};
+
+export const fetchSubCategories = async (deptCode) => {
+    const cfg = await loadConfig();
+    let url = `${cfg.baseUrl}/reports/subcategories`;
+    if (deptCode) url += `?deptCode=${deptCode}`;
     const response = await fetch(url, {
         headers: getAuthHeaders()
     });

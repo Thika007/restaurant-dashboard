@@ -86,55 +86,64 @@ export const translations = {
             },
             itemReport: {
                 headers: {
-                    billId: "Bill ID",
-                    kotNo: "KOT No",
                     description: "Description",
                     qty: "Qty",
-                    amount: "Amount",
-                    reason: "Reason"
+                    amount: "Amount"
                 },
                 filters: {
-                    mainType: {
-                        label: "Type Selection",
-                        all: "All Types",
+                    txnType: {
+                        label: "Transaction Type",
+                        all: "All",
                         cash: "Cash",
-                        card: "Card",
-                        complimentary: "Complimentary",
-                        staff: "Staff",
+                        cardPay: "Card Pay",
                         credit: "Credit",
-                        wastage: "Wastage",
+                        creditPaid: "Credit paid",
+                        refund: "Refund",
+                        complimentary: "Complementary",
+                        void: "Void",
+                        staff: "Staff",
+                        cancel: "Cancel bill",
+                        incomplete: "Incomplete Bill",
+                        wastage: "Wastage"
+                    },
+                    orderType: {
+                        label: "Order Type",
+                        all: "All",
                         table: "Table Order",
                         takeaway: "Take Away",
                         delivery: "Delivery",
                         quick: "Quick Service"
                     },
+                    category: {
+                        label: "Category"
+                    },
+                    subCategory: {
+                        label: "Sub Category"
+                    },
+                    search: {
+                        label: "Search Item",
+                        placeholder: "Type item name..."
+                    },
                     descSort: {
-                        label: "Description",
+                        label: "Sort By Description",
                         all: "Default",
-                        aToZ: "A to Z",
-                        menuId: "Menu ID"
+                        aToZ: "A to Z"
                     },
                     qtySort: {
-                        label: "Quantity",
+                        label: "Sort By Quantity",
                         all: "Default",
                         maxMin: "Max to Min",
                         minMax: "Min to Max"
                     },
                     amtSort: {
-                        label: "Amount Sort",
+                        label: "Sort By Amount",
                         all: "Default",
                         maxMin: "Max to Min",
                         minMax: "Min to Max"
-                    },
-                    remark: {
-                        label: "Remark",
-                        all: "All",
-                        void: "Void",
-                        cancel: "Cancel",
-                        discount: "Discount",
-                        refund: "Refund"
                     }
-                }
+                },
+                pdfTitle: "Item Report",
+                pdfFilterSummary: "Filter Summary"
             }
         },
         kpi: {
@@ -294,55 +303,64 @@ export const translations = {
             },
             itemReport: {
                 headers: {
-                    billId: "බිල්පත් අංකය",
-                    kotNo: "KOT අංකය",
                     description: "විස්තරය",
                     qty: "ප්‍රමාණය",
-                    amount: "වටිනාකම",
-                    reason: "හේතුව"
+                    amount: "වටිනාකම"
                 },
                 filters: {
-                    mainType: {
-                        label: "වර්ගය තෝරන්න",
-                        all: "සියලුම වර්ග",
+                    txnType: {
+                        label: "ගනුදෙනු වර්ගය",
+                        all: "සියල්ල",
                         cash: "මුදල් (Cash)",
-                        card: "කාඩ්පත් (Card)",
-                        complimentary: "හිමිකරුගේ (Complimentary)",
-                        staff: "කාර්ය මණ්ඩලය (Staff)",
+                        cardPay: "කාඩ්පත් (Card Pay)",
                         credit: "ණය (Credit)",
-                        wastage: "අපතේ යාම් (Wastage)",
+                        creditPaid: "ණය ගෙවීම් (Credit paid)",
+                        refund: "ප්‍රතිපූරණ (Refund)",
+                        complimentary: "හිමිකරුගේ (Complimentary)",
+                        void: "අවලංගු (Void)",
+                        staff: "කාර්ය මණ්ඩලය (Staff)",
+                        cancel: "අවලංගු කළ බිල්පත් (Cancel bill)",
+                        incomplete: "අසම්පූර්ණ බිල්පත් (Incomplete Bill)",
+                        wastage: "අපතේ යාම් (Wastage)"
+                    },
+                    orderType: {
+                        label: "ඇණවුම් වර්ගය",
+                        all: "සියල්ල",
                         table: "මේස ඇණවුම්",
                         takeaway: "රැගෙන යාම",
                         delivery: "බෙදා හැරීම",
                         quick: "කඩිනම් සේවාව"
                     },
+                    category: {
+                        label: "ප්‍රධාන වර්ගය (Category)"
+                    },
+                    subCategory: {
+                        label: "අනු වර්ගය (Sub Category)"
+                    },
+                    search: {
+                        label: "අයිතමය සොයන්න",
+                        placeholder: "අයිතමයේ නම ඇතුළත් කරන්න..."
+                    },
                     descSort: {
-                        label: "විස්තරය අනුව",
+                        label: "විස්තරය අනුව පෙළගස්වන්න",
                         all: "සාමාන්‍ය",
-                        aToZ: "A සිට Z දක්වා",
-                        menuId: "මෙනු අංකය (Menu ID)"
+                        aToZ: "A සිට Z දක්වා"
                     },
                     qtySort: {
-                        label: "ප්‍රමාණය අනුව",
+                        label: "ප්‍රමාණය අනුව පෙළගස්වන්න",
                         all: "සාමාන්‍ය",
                         maxMin: "වැඩිම සිට අඩුම",
                         minMax: "අඩුම සිට වැඩිම",
                     },
                     amtSort: {
-                        label: "වටිනාකම අනුව",
+                        label: "වටිනාකම අනුව පෙළගස්වන්න",
                         all: "සාමාන්‍ය",
                         maxMin: "වැඩිම සිට අඩුම",
                         minMax: "අඩුම සිට වැඩිම",
-                    },
-                    remark: {
-                        label: "විශේෂ සටහන්",
-                        all: "සියල්ල",
-                        void: "අවලංගු (Void)",
-                        cancel: "අවලංගු කළ (Cancel)",
-                        discount: "වට්ටම් (Discount)",
-                        refund: "ප්‍රතිපූරණය (Refund)"
                     }
-                }
+                },
+                pdfTitle: "අයිතම වාර්තාව",
+                pdfFilterSummary: "පෙරහන් සාරාංශය"
             }
         },
         kpi: {
