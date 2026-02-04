@@ -246,7 +246,7 @@ const Dashboard = ({ lang, setLang }) => {
       const tableRows = billReportData.map(row => [
         row.Bill_Id,
         parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
-        row.Discount_Amt > 0 ? parseFloat(row.Discount_Amt).toLocaleString(undefined, { minimumFractionDigits: 2 }) : 'No Discount',
+        parseFloat(row.Discount_Amt || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
         parseFloat(row.TAX || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
         parseFloat(row.Service_Charge || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
         parseFloat(row.Total_Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 }),
@@ -877,26 +877,35 @@ const Dashboard = ({ lang, setLang }) => {
                     <table className="w-full text-left border-collapse">
                       <thead>
                         <tr className="bg-slate-50/80 border-b border-slate-200">
-                          {Object.values(t.tabs.billReport.headers).map((header, idx) => (
-                            <th key={idx} className="px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 whitespace-nowrap">
-                              {header}
-                            </th>
-                          ))}
+                          {Object.values(t.tabs.billReport.headers).map((header, idx) => {
+                            const isNumeric = [
+                              t.tabs.billReport.headers.amount,
+                              t.tabs.billReport.headers.discountType,
+                              t.tabs.billReport.headers.tax,
+                              t.tabs.billReport.headers.serviceCharge,
+                              t.tabs.billReport.headers.totalAmount
+                            ].includes(header);
+                            return (
+                              <th key={idx} className={`px-4 py-4 text-[10px] font-black uppercase tracking-wider text-slate-500 whitespace-nowrap ${isNumeric ? 'text-right' : 'text-left'}`}>
+                                {header}
+                              </th>
+                            );
+                          })}
                         </tr>
                       </thead>
                       <tbody>
                         {billReportData.length > 0 ? (
                           billReportData.map((row, idx) => (
                             <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">{row.Bill_Id}</td>
-                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">{parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">
-                                {row.Discount_Amt > 0 ? parseFloat(row.Discount_Amt).toLocaleString(undefined, { minimumFractionDigits: 2 }) : (lang === 'si' ? 'වට්ටම් රහිත' : 'No Discount')}
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-700 text-left">{row.Bill_Id}</td>
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-700 text-right">{parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-700 text-right">
+                                {parseFloat(row.Discount_Amt || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                               </td>
-                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">{parseFloat(row.TAX || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">{parseFloat(row.Service_Charge || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                              <td className="px-4 py-3 text-xs font-bold text-dashboard-blue">{parseFloat(row.Total_Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                              <td className="px-4 py-3 text-xs">
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-700 text-right">{parseFloat(row.TAX || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-700 text-right">{parseFloat(row.Service_Charge || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              <td className="px-4 py-3 text-xs font-bold text-dashboard-blue text-right">{parseFloat(row.Total_Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                              <td className="px-4 py-3 text-xs text-left">
                                 <span className={`px-2 py-1 rounded-lg font-bold text-[10px] uppercase ${row.Transaction_Type === 'Cash' ? 'bg-green-100 text-green-700' :
                                   row.Transaction_Type === 'Cancel bill' ? 'bg-red-100 text-red-700' :
                                     row.Transaction_Type === 'Incomplete Bill' ? 'bg-orange-100 text-orange-700' :
@@ -907,13 +916,13 @@ const Dashboard = ({ lang, setLang }) => {
                                   {row.Transaction_Type}
                                 </span>
                               </td>
-                              <td className="px-4 py-3 text-xs font-semibold text-slate-600">{row.Order_Type}</td>
-                              <td className="px-4 py-3 text-xs text-slate-500 italic">{row.Remark || '-'}</td>
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-600 text-left">{row.Order_Type}</td>
+                              <td className="px-4 py-3 text-xs text-slate-500 italic text-left">{row.Remark || '-'}</td>
                             </tr>
                           ))
                         ) : (
                           <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                            <td colSpan={Object.keys(t.tabs.billReport.headers).length} className="px-4 py-12 text-center">
+                            <td colSpan={Object.keys(t.tabs.billReport.headers).length} className="px-4 py-12 text-center text-left">
                               <div className="flex flex-col items-center justify-center text-slate-400">
                                 <Calendar className="w-8 h-8 mb-2 opacity-20" />
                                 <p className="text-sm font-medium">No report data to display</p>
@@ -923,6 +932,29 @@ const Dashboard = ({ lang, setLang }) => {
                           </tr>
                         )}
                       </tbody>
+                      {billReportData.length > 0 && (
+                        <tfoot className="bg-slate-50/80 border-t-2 border-slate-200">
+                          <tr>
+                            <td className="px-4 py-4 text-[10px] font-black uppercase text-slate-500 text-left">{lang === 'si' ? 'එකතුව' : 'TOTAL'}</td>
+                            <td className="px-4 py-3 text-xs font-black text-slate-700 text-right">
+                              {billReportData.reduce((sum, row) => sum + parseFloat(row.Amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-4 py-3 text-xs font-black text-slate-700 text-right">
+                              {billReportData.reduce((sum, row) => sum + parseFloat(row.Discount_Amt || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-4 py-3 text-xs font-black text-slate-700 text-right">
+                              {billReportData.reduce((sum, row) => sum + parseFloat(row.TAX || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-4 py-3 text-xs font-black text-slate-700 text-right">
+                              {billReportData.reduce((sum, row) => sum + parseFloat(row.Service_Charge || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                            <td className="px-4 py-3 text-sm font-black text-dashboard-blue text-right">
+                              {billReportData.reduce((sum, row) => sum + parseFloat(row.Total_Amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                            <td colSpan={3} className="text-left"></td>
+                          </tr>
+                        </tfoot>
+                      )}
                     </table>
                   </div>
                 ) : activeReportType === 'item' ? (
