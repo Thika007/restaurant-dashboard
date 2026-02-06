@@ -1,4 +1,4 @@
-export const translations = {
+﻿export const translations = {
     en: {
         navbar: {
             search: "Search transactions...",
@@ -43,9 +43,7 @@ export const translations = {
                         cardPay: "Card Pay",
                         credit: "Credit",
                         creditPaid: "Credit paid",
-                        refund: "Refund",
                         complimentary: "Complementary",
-                        void: "Void",
                         staff: "Staff",
                         cancel: "Cancel bill",
                         incomplete: "Incomplete Bill",
@@ -86,6 +84,7 @@ export const translations = {
             },
             itemReport: {
                 headers: {
+                    itemCode: "Item Code",
                     description: "Description",
                     qty: "Qty",
                     amount: "Amount"
@@ -260,9 +259,7 @@ export const translations = {
                         cardPay: "කාඩ්පත් (Card Pay)",
                         credit: "ණය (Credit)",
                         creditPaid: "ණය ගෙවීම් (Credit paid)",
-                        refund: "ප්‍රතිපූරණ (Refund)",
                         complimentary: "හිමිකරුගේ (Complimentary)",
-                        void: "අවලංගු (Void)",
                         staff: "කාර්ය මණ්ඩලය (Staff)",
                         cancel: "අවලංගු කළ බිල්පත් (Cancel bill)",
                         incomplete: "අසම්පූර්ණ බිල්පත් (Incomplete Bill)",
@@ -303,6 +300,7 @@ export const translations = {
             },
             itemReport: {
                 headers: {
+                    itemCode: "අයිතම කේතය",
                     description: "විස්තරය",
                     qty: "ප්‍රමාණය",
                     amount: "වටිනාකම"

@@ -368,6 +368,7 @@ const Dashboard = ({ lang, setLang }) => {
       // Table
       const tableColumn = Object.values(pdfT.headers);
       const tableRows = itemReportData.map(row => [
+        row.Code,
         row.Description,
         row.Qty,
         parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })
@@ -973,6 +974,7 @@ const Dashboard = ({ lang, setLang }) => {
                         {itemReportData.length > 0 ? (
                           itemReportData.map((row, idx) => (
                             <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                              <td className="px-4 py-3 text-xs font-semibold text-slate-700">{row.Code}</td>
                               <td className="px-4 py-3 text-xs font-semibold text-slate-700">{row.Description}</td>
                               <td className="px-4 py-3 text-xs font-semibold text-slate-700 text-right">{row.Qty}</td>
                               <td className="px-4 py-3 text-xs font-bold text-dashboard-blue text-right">{parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
@@ -993,7 +995,7 @@ const Dashboard = ({ lang, setLang }) => {
                       {itemReportData.length > 0 && (
                         <tfoot className="bg-slate-50/80 border-t-2 border-slate-200">
                           <tr>
-                            <td className="px-4 py-4 text-[10px] font-black uppercase text-slate-500">{lang === 'si' ? 'එකතුව' : 'TOTAL'}</td>
+                            <td colSpan={2} className="px-4 py-4 text-[10px] font-black uppercase text-slate-500">{lang === 'si' ? 'එකතුව' : 'TOTAL'}</td>
                             <td className="px-4 py-4 text-sm font-black text-slate-700 text-right">
                               {itemReportData.reduce((sum, row) => sum + parseFloat(row.Qty || 0), 0)}
                             </td>

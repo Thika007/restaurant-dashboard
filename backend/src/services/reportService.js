@@ -35,6 +35,10 @@ export const getBillReport = async (startDate, endDate, filters = {}) => {
                     LEFT JOIN cc_mast cc ON LTRIM(RTRIM(t.key_code)) = LTRIM(RTRIM(cc.cc_no))
                     WHERE t.bill_no = h.bill_no 
                     AND t.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'RR', 'CO', 'VV', 'XX', 'ST', 'WA')
+                    ORDER BY CASE 
+                        WHEN t.type_code IN ('MM', 'CC', 'CS', 'CP', 'CO', 'ST') THEN 1 
+                        ELSE 2 
+                    END
                 )
             END as Transaction_Type,
             CASE 
@@ -48,6 +52,10 @@ export const getBillReport = async (startDate, endDate, filters = {}) => {
                         END
                     FROM bill_tran t3 
                     WHERE t3.bill_no = h.bill_no AND t3.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'RR', 'CO', 'VV', 'XX', 'ST', 'WA')
+                    ORDER BY CASE 
+                        WHEN t3.type_code IN ('MM', 'CC', 'CS', 'CP', 'CO', 'ST') THEN 1 
+                        ELSE 2 
+                    END
                 )
             END as Raw_Type,
             CASE 
@@ -189,7 +197,7 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
         FROM bill_tran t
         INNER JOIN bill_header h ON t.bill_no = h.bill_no
         LEFT JOIN Item_mast i ON t.tran_code = i.barcode
-        WHERE t.type_code IN ('RS', 'RR')
+        WHERE t.type_code IN ('RS', 'RR', 'VV', 'WA')
     `;
 
     if (startDate && endDate) {
