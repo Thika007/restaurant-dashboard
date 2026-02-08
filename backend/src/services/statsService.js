@@ -18,6 +18,7 @@ export const getTodayStats = async (locationId) => {
     let query = `
         SELECT 
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN bill_amt ELSE 0 END), 0) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as total_revenue,
+            (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN bill_amt - tax - Service_charge_Amt ELSE 0 END), 0) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as net_revenue,
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN Service_charge_Amt ELSE 0 END), 0) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as total_service_charge,
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN ABS(Discount_Amt) ELSE 0 END), 0) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as total_discount,
             (SELECT COUNT(CASE WHEN bill_valid != 'X' THEN bill_no END) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as bill_count,

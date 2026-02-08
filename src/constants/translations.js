@@ -146,8 +146,10 @@
             }
         },
         kpi: {
-            todayRevenue: "Today Revenue (LKR)",
-            totalRevenue: "Total Revenue (LKR)",
+            todayRevenue: "Today Revenue (With TAX & SC) (LKR)",
+            todayNetRevenue: "Today Revenue (Without TAX & SC) (LKR)",
+            totalRevenue: "Total Revenue (With TAX & SC) (LKR)",
+            totalNetRevenue: "Total Revenue (Without TAX & SC) (LKR)",
             todayBills: "Today Bills",
             totalBills: "Total Bill Count",
             todayCancelled: "Today Cancelled",
@@ -362,8 +364,10 @@
             }
         },
         kpi: {
-            todayRevenue: "අද දින ආදායම (LKR)",
-            totalRevenue: "මුළු ආදායම (LKR)",
+            todayRevenue: "අද ආදායම (බදු සහ සේවා ගාස්තු සහිත) (LKR)",
+            todayNetRevenue: "අද ආදායම (බදු සහ සේවා ගාස්තු රහිත) (LKR)",
+            totalRevenue: "මුළු ආදායම (බදු සහ සේවා ගාස්තු සහිත) (LKR)",
+            totalNetRevenue: "මුළු ආදායම (බදු සහ සේවා ගාස්තු රහිත) (LKR)",
             todayBills: "අද බිල්පත් සංඛ්‍යාව",
             totalBills: "මුළු බිල්පත් සංඛ්‍යාව",
             todayCancelled: "අද අවලංගු කළ ඇණවුම්",

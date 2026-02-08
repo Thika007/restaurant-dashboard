@@ -32,14 +32,22 @@ const KpiCards = ({ isHistory, t, stats, lang }) => {
         {
             title: isHistory ? t.totalRevenue : t.todayRevenue,
             value: stats?.total_revenue !== undefined ? stats.total_revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            subValue: stats?.bill_count,
             icon: TrendingUp,
             color: 'bg-dashboard-blue'
+        },
+        {
+            title: isHistory ? t.totalNetRevenue : t.todayNetRevenue,
+            value: stats?.net_revenue !== undefined ? stats.net_revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            subValue: stats?.bill_count,
+            icon: Wallet,
+            color: 'bg-dashboard-green'
         },
         {
             title: t.serviceCharge,
             value: stats?.total_service_charge !== undefined ? stats.total_service_charge.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
             icon: Wallet,
-            color: 'bg-dashboard-green'
+            color: 'bg-blue-600'
         },
         {
             title: t.totalDiscount,
@@ -100,8 +108,8 @@ const KpiCards = ({ isHistory, t, stats, lang }) => {
 
     return (
         <div className="space-y-4 sm:space-y-6 mb-8">
-            {/* Top Row - Financials (4 Columns) */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            {/* Top Row - Financials (5 Columns) */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
                 {topRowKpis.map((kpi, index) => (
                     <KpiCard key={`top-${index}`} {...kpi} lang={lang} />
                 ))}

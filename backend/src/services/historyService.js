@@ -70,6 +70,7 @@ export const getHistoryStats = async (startDate, endDate, locationId) => {
     let query = `
         SELECT 
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN bill_amt ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as total_revenue,
+            (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN bill_amt - tax - Service_charge_Amt ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as net_revenue,
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN Service_charge_Amt ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as total_service_charge,
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN ABS(Discount_Amt) ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as total_discount,
             (SELECT COUNT(DISTINCT CASE WHEN bill_valid != 'X' THEN bill_no END) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as bill_count,
