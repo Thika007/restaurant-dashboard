@@ -14,7 +14,7 @@ const KpiCard = ({ title, value, icon: Icon, color, subValue, lang }) => (
                 </p>
                 {subValue !== undefined && (
                     <p className="text-[9px] sm:text-[11px] font-bold text-dashboard-blue mt-0.5 uppercase tracking-wider">
-                        {subValue} {lang === 'si' ? 'බිල්පත්' : 'Bills'}
+                        {subValue}
                     </p>
                 )}
             </div>
@@ -27,44 +27,49 @@ const KpiCard = ({ title, value, icon: Icon, color, subValue, lang }) => (
 );
 
 const KpiCards = ({ isHistory, t, stats, lang }) => {
+    const billsSuffix = lang === 'si' ? 'බිල්පත්' : 'Bills';
+
     // Large Top Row Metrics
     const topRowKpis = [
         {
             title: isHistory ? t.totalRevenue : t.todayRevenue,
             value: stats?.total_revenue !== undefined ? stats.total_revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
-            subValue: stats?.bill_count,
+            subValue: stats?.bill_count !== undefined ? `${stats.bill_count} ${billsSuffix}` : undefined,
             icon: TrendingUp,
             color: 'bg-dashboard-blue'
         },
         {
             title: isHistory ? t.totalNetRevenue : t.todayNetRevenue,
             value: stats?.net_revenue !== undefined ? stats.net_revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
-            subValue: stats?.bill_count,
+            subValue: stats?.bill_count !== undefined ? `${stats.bill_count} ${billsSuffix}` : undefined,
             icon: Wallet,
             color: 'bg-dashboard-green'
         },
         {
             title: t.serviceCharge,
             value: stats?.total_service_charge !== undefined ? stats.total_service_charge.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            subValue: stats?.service_charge_count !== undefined ? `${stats.service_charge_count} ${billsSuffix}` : undefined,
             icon: Wallet,
             color: 'bg-blue-600'
         },
         {
             title: t.totalDiscount,
             value: stats?.total_discount !== undefined ? stats.total_discount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            subValue: stats?.discount_count !== undefined ? `${stats.discount_count} ${billsSuffix}` : undefined,
             icon: Tag,
             color: 'bg-pink-500'
         },
         {
             title: isHistory ? t.totalRefunds : t.todayRefunds,
-            value: '0.00',
+            value: stats?.refund_amount !== undefined ? stats.refund_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            subValue: stats?.refund_count !== undefined ? `${stats.refund_count} ${billsSuffix}` : undefined,
             icon: RefreshCcw,
             color: 'bg-orange-500'
         }
     ];
 
-    // Smaller Bottom Row Metrics
-    const bottomRowKpis = [
+    // Middle Row Metrics (4 Columns)
+    const middleRowKpis = [
         {
             title: isHistory ? t.totalBills : t.todayBills,
             value: stats?.bill_count !== undefined ? stats.bill_count.toLocaleString() : '0',
@@ -73,36 +78,57 @@ const KpiCards = ({ isHistory, t, stats, lang }) => {
         },
         {
             title: isHistory ? t.totalCancelled : t.todayCancelled,
-            value: stats?.cancelled_count !== undefined ? stats.cancelled_count.toLocaleString() : '0',
+            value: stats?.cancelled_amount !== undefined ? stats.cancelled_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            subValue: stats?.cancelled_count !== undefined ? `${stats.cancelled_count} ${billsSuffix}` : undefined,
             icon: CircleAlert,
             color: 'bg-dashboard-red'
         },
         {
             title: t.numberOfGuests,
             value: stats?.guest_count !== undefined ? stats.guest_count.toLocaleString() : '0',
+            subValue: stats?.total_revenue && stats?.guest_count ?
+                `A.P.P: ${(stats.total_revenue / stats.guest_count).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : undefined,
             icon: Users,
             color: 'bg-cyan-500'
         },
         {
             title: t.voidBills,
             value: stats?.void_amount !== undefined ? stats.void_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
-            subValue: stats?.void_count,
+            subValue: stats?.void_count !== undefined ? `${stats.void_count} ${billsSuffix}` : undefined,
             icon: Trash2,
             color: 'bg-rose-500'
-        },
+        }
+    ];
+
+    // Bottom Row Metrics (4 Columns)
+    const bottomRowKpis = [
         {
             title: t.complimentary,
             value: stats?.complimentary_amount !== undefined ? stats.complimentary_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
-            subValue: stats?.complimentary_count,
+            subValue: stats?.complimentary_count !== undefined ? `${stats.complimentary_count} ${billsSuffix}` : undefined,
             icon: Gift,
             color: 'bg-purple-500'
         },
         {
             title: t.staff,
             value: stats?.staff_amount !== undefined ? stats.staff_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
-            subValue: stats?.staff_count,
+            subValue: stats?.staff_count !== undefined ? `${stats.staff_count} ${billsSuffix}` : undefined,
             icon: UserCheck,
             color: 'bg-amber-500'
+        },
+        {
+            title: t.waste,
+            value: stats?.waste_amount !== undefined ? stats.waste_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            subValue: stats?.waste_count !== undefined ? `${stats.waste_count} ${billsSuffix}` : undefined,
+            icon: Trash2,
+            color: 'bg-orange-600'
+        },
+        {
+            title: t.totalTax,
+            value: stats?.total_tax !== undefined ? stats.total_tax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
+            subValue: stats?.tax_count !== undefined ? `${stats.tax_count} ${billsSuffix}` : undefined,
+            icon: Wallet,
+            color: 'bg-blue-400'
         }
     ];
 
@@ -115,8 +141,15 @@ const KpiCards = ({ isHistory, t, stats, lang }) => {
                 ))}
             </div>
 
-            {/* Bottom Row - Activity (6 Columns) */}
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-6">
+            {/* Middle Row - Activity (4 Columns) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                {middleRowKpis.map((kpi, index) => (
+                    <KpiCard key={`middle-${index}`} {...kpi} lang={lang} />
+                ))}
+            </div>
+
+            {/* Bottom Row - More Details (4 Columns) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                 {bottomRowKpis.map((kpi, index) => (
                     <KpiCard key={`bottom-${index}`} {...kpi} lang={lang} />
                 ))}

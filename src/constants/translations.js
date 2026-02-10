@@ -162,6 +162,9 @@
             complimentary: "Complimentary",
             staff: "Staff Bills",
             totalDiscount: "Total Discount",
+            avgPerPerson: "Avg Per Person",
+            totalTax: "Total TAX",
+            waste: "Wastage",
             fromYesterday: "from yesterday",
             vsPrevious: "vs previous period"
         },
@@ -380,6 +383,9 @@
             complimentary: "හිමිකරුගේ ",
             staff: "කාර්ය මණ්ඩලය",
             totalDiscount: "මුළු වට්ටම්",
+            avgPerPerson: "පුද්ගලයෙකුගේ සාමාන්‍යය",
+            totalTax: "මුළු බදු (TAX)",
+            waste: "අපතේ යාම් (WA)",
             fromYesterday: "ඊයේ සිට",
             vsPrevious: "පෙර කාලයට සාපේක්ෂව"
         },
