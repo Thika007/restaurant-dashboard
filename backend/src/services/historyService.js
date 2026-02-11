@@ -81,9 +81,11 @@ export const getHistoryStats = async (startDate, endDate, locationId) => {
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN No_Of_Pax ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as guest_count,
 
             (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code IN ('R', 'RR') ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as refund_amount,
+            (SELECT ISNULL(SUM(ABS(t.tran_qty)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code IN ('R', 'RR') ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as refund_items_count,
             (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code IN ('R', 'RR') ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as refund_count,
             
             (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'VV' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as void_amount,
+            (SELECT ISNULL(SUM(ABS(t.tran_qty)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'VV' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as void_items_count,
             (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'VV' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as void_count,
             
             (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'CO' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as complimentary_amount,
@@ -93,6 +95,7 @@ export const getHistoryStats = async (startDate, endDate, locationId) => {
             (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'ST' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as staff_count,
             
             (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'WA' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as waste_amount,
+            (SELECT ISNULL(SUM(ABS(t.tran_qty)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'WA' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as waste_items_count,
             (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'WA' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as waste_count,
             
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN tax ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as total_tax,

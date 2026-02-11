@@ -60,9 +60,9 @@ const KpiCards = ({ isHistory, t, stats, lang }) => {
             color: 'bg-pink-500'
         },
         {
-            title: isHistory ? t.totalRefunds : t.todayRefunds,
+            title: t.refundsAmount,
             value: stats?.refund_amount !== undefined ? stats.refund_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
-            subValue: stats?.refund_count !== undefined ? `${stats.refund_count} ${billsSuffix}` : undefined,
+            subValue: stats?.refund_items_count !== undefined ? `${stats.refund_items_count} ${lang === 'si' ? 'අයිතම' : 'Items'}` : undefined,
             icon: RefreshCcw,
             color: 'bg-orange-500'
         }
@@ -86,15 +86,15 @@ const KpiCards = ({ isHistory, t, stats, lang }) => {
         {
             title: t.numberOfGuests,
             value: stats?.guest_count !== undefined ? stats.guest_count.toLocaleString() : '0',
-            subValue: stats?.total_revenue && stats?.guest_count ?
-                `A.P.P: ${(stats.total_revenue / stats.guest_count).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : undefined,
+            subValue: stats?.net_revenue && stats?.guest_count ?
+                `A.P.P: ${(stats.net_revenue / stats.guest_count).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : undefined,
             icon: Users,
             color: 'bg-cyan-500'
         },
         {
-            title: t.voidBills,
+            title: t.voidAmount,
             value: stats?.void_amount !== undefined ? stats.void_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
-            subValue: stats?.void_count !== undefined ? `${stats.void_count} ${billsSuffix}` : undefined,
+            subValue: stats?.void_items_count !== undefined ? `${stats.void_items_count} ${lang === 'si' ? 'අයිතම' : 'Items'}` : undefined,
             icon: Trash2,
             color: 'bg-rose-500'
         }
@@ -117,9 +117,9 @@ const KpiCards = ({ isHistory, t, stats, lang }) => {
             color: 'bg-amber-500'
         },
         {
-            title: t.waste,
+            title: t.wasteAmount,
             value: stats?.waste_amount !== undefined ? stats.waste_amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00',
-            subValue: stats?.waste_count !== undefined ? `${stats.waste_count} ${billsSuffix}` : undefined,
+            subValue: stats?.waste_items_count !== undefined ? `${stats.waste_items_count} ${lang === 'si' ? 'අයිතම' : 'Items'}` : undefined,
             icon: Trash2,
             color: 'bg-orange-600'
         },

@@ -29,9 +29,11 @@ export const getTodayStats = async (locationId) => {
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN No_Of_Pax ELSE 0 END), 0) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as guest_count,
             
             (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code IN ('R', 'RR') ${locFilter.replace('loc_id', 'h.loc_id')}) as refund_amount,
+            (SELECT ISNULL(SUM(ABS(t.tran_qty)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code IN ('R', 'RR') ${locFilter.replace('loc_id', 'h.loc_id')}) as refund_items_count,
             (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code IN ('R', 'RR') ${locFilter.replace('loc_id', 'h.loc_id')}) as refund_count,
             
             (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'VV' ${locFilter.replace('loc_id', 'h.loc_id')}) as void_amount,
+            (SELECT ISNULL(SUM(ABS(t.tran_qty)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'VV' ${locFilter.replace('loc_id', 'h.loc_id')}) as void_items_count,
             (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'VV' ${locFilter.replace('loc_id', 'h.loc_id')}) as void_count,
             
             (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'CO' ${locFilter.replace('loc_id', 'h.loc_id')}) as complimentary_amount,
@@ -41,6 +43,7 @@ export const getTodayStats = async (locationId) => {
             (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'ST' ${locFilter.replace('loc_id', 'h.loc_id')}) as staff_count,
             
             (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'WA' ${locFilter.replace('loc_id', 'h.loc_id')}) as waste_amount,
+            (SELECT ISNULL(SUM(ABS(t.tran_qty)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'WA' ${locFilter.replace('loc_id', 'h.loc_id')}) as waste_items_count,
             (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'WA' ${locFilter.replace('loc_id', 'h.loc_id')}) as waste_count,
             
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN tax ELSE 0 END), 0) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as total_tax,
