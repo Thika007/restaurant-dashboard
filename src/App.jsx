@@ -506,7 +506,13 @@ const Dashboard = ({ lang, setLang }) => {
         <div key={activeTab} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           {(activeTab === 'real-time' || activeTab === 'history') && (
             <>
-              <KpiCards isHistory={activeTab === 'history'} t={t.kpi} stats={activeTab === 'history' ? historyStats : stats} lang={lang} />
+              <KpiCards
+                isHistory={activeTab === 'history'}
+                t={t.kpi}
+                orderTypeLabels={t.tabs.billReport.filters.orderType}
+                stats={activeTab === 'history' ? historyStats : stats}
+                lang={lang}
+              />
               <Charts isHistory={activeTab === 'history'} t={t.charts} chartsData={activeTab === 'history' ? historyChartsData : chartsData} />
             </>
           )}
@@ -667,32 +673,59 @@ const Dashboard = ({ lang, setLang }) => {
                       <div className="space-y-1.5 border-r border-slate-100 pr-4">
                         <label className="text-[11px] font-bold text-slate-500 uppercase ml-1 block mb-2">{t.tabs.itemReport.filters.txnType.label}</label>
                         <div className="max-h-40 overflow-y-auto pr-2 space-y-1">
-                          {Object.entries(t.tabs.itemReport.filters.txnType).filter(([k]) => k !== 'label').map(([k, v]) => (
-                            <label key={k} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
-                              <input
-                                type="checkbox"
-                                checked={itemReportFilters.txnType.includes(k)}
-                                onChange={(e) => {
-                                  const isChecked = e.target.checked;
-                                  let newValues = [...itemReportFilters.txnType];
-                                  if (k === 'all') {
-                                    newValues = ['all'];
-                                  } else {
-                                    newValues = newValues.filter(v => v !== 'all');
-                                    if (isChecked) {
-                                      newValues.push(k);
+                          {Object.entries(t.tabs.itemReport.filters.txnType).filter(([k]) => k !== 'label').map(([k, v]) => {
+                            if (k === 'cardPay') {
+                              return cardTypes.map(card => (
+                                <label key={card.cc_no} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={itemReportFilters.txnType.includes(`CC_${card.cc_no}`)}
+                                    onChange={(e) => {
+                                      const isChecked = e.target.checked;
+                                      let newValues = [...itemReportFilters.txnType];
+                                      const cardVal = `CC_${card.cc_no}`;
+                                      newValues = newValues.filter(v => v !== 'all');
+                                      if (isChecked) {
+                                        newValues.push(cardVal);
+                                      } else {
+                                        newValues = newValues.filter(v => v !== cardVal);
+                                      }
+                                      if (newValues.length === 0) newValues = ['all'];
+                                      setItemReportFilters({ ...itemReportFilters, txnType: newValues });
+                                    }}
+                                    className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                                  />
+                                  <span className="text-xs font-semibold text-slate-600 select-none">{card.cc_name}</span>
+                                </label>
+                              ));
+                            }
+                            return (
+                              <label key={k} className="flex items-center space-x-2 cursor-pointer hover:bg-slate-50 p-1 rounded transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={itemReportFilters.txnType.includes(k)}
+                                  onChange={(e) => {
+                                    const isChecked = e.target.checked;
+                                    let newValues = [...itemReportFilters.txnType];
+                                    if (k === 'all') {
+                                      newValues = ['all'];
                                     } else {
-                                      newValues = newValues.filter(v => v !== k);
+                                      newValues = newValues.filter(v => v !== 'all');
+                                      if (isChecked) {
+                                        newValues.push(k);
+                                      } else {
+                                        newValues = newValues.filter(v => v !== k);
+                                      }
+                                      if (newValues.length === 0) newValues = ['all'];
                                     }
-                                    if (newValues.length === 0) newValues = ['all'];
-                                  }
-                                  setItemReportFilters({ ...itemReportFilters, txnType: newValues });
-                                }}
-                                className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
-                              />
-                              <span className="text-xs font-semibold text-slate-600 select-none">{v}</span>
-                            </label>
-                          ))}
+                                    setItemReportFilters({ ...itemReportFilters, txnType: newValues });
+                                  }}
+                                  className="w-3.5 h-3.5 text-dashboard-blue border-slate-300 rounded focus:ring-dashboard-blue"
+                                />
+                                <span className="text-xs font-semibold text-slate-600 select-none">{v}</span>
+                              </label>
+                            );
+                          })}
                         </div>
                       </div>
 

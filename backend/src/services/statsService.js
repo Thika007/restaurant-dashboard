@@ -46,6 +46,29 @@ export const getTodayStats = async (locationId) => {
             (SELECT ISNULL(SUM(ABS(t.tran_qty)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND (t.type_code = 'RS' OR t.tran_type = 'S') AND EXISTS (SELECT 1 FROM bill_tran t2 WHERE t2.bill_no = h.bill_no AND t2.type_code = 'WA') ${locFilter.replace('loc_id', 'h.loc_id')}) as waste_items_count,
             (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'WA' ${locFilter.replace('loc_id', 'h.loc_id')}) as waste_count,
             
+            (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'CS' ${locFilter.replace('loc_id', 'h.loc_id')}) as credit_amount,
+            (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'CS' ${locFilter.replace('loc_id', 'h.loc_id')}) as credit_count,
+            
+            (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'CP' ${locFilter.replace('loc_id', 'h.loc_id')}) as credit_pay_amount,
+            (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND t.type_code = 'CP' ${locFilter.replace('loc_id', 'h.loc_id')}) as credit_pay_count,
+
+            -- Order Type Metrics
+            (SELECT ISNULL(SUM(h.bill_amt - h.tax - h.Service_charge_Amt), 0) FROM bill_header h WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND h.Ord_Type = 'TO' ${locFilter.replace('loc_id', 'h.loc_id')}) as table_order_amount,
+            (SELECT COUNT(h.bill_no) FROM bill_header h WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND h.Ord_Type = 'TO' ${locFilter.replace('loc_id', 'h.loc_id')}) as table_order_count,
+            (SELECT ISNULL(SUM(h.No_Of_Pax), 0) FROM bill_header h WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND h.Ord_Type = 'TO' ${locFilter.replace('loc_id', 'h.loc_id')}) as table_order_guests,
+
+            (SELECT ISNULL(SUM(h.bill_amt - h.tax - h.Service_charge_Amt), 0) FROM bill_header h WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND h.Ord_Type = 'TA' ${locFilter.replace('loc_id', 'h.loc_id')}) as takeaway_order_amount,
+            (SELECT COUNT(h.bill_no) FROM bill_header h WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND h.Ord_Type = 'TA' ${locFilter.replace('loc_id', 'h.loc_id')}) as takeaway_order_count,
+            (SELECT ISNULL(SUM(h.No_Of_Pax), 0) FROM bill_header h WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND h.Ord_Type = 'TA' ${locFilter.replace('loc_id', 'h.loc_id')}) as takeaway_order_guests,
+
+            (SELECT ISNULL(SUM(h.bill_amt - h.tax - h.Service_charge_Amt), 0) FROM bill_header h WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND h.Ord_Type = 'DE' ${locFilter.replace('loc_id', 'h.loc_id')}) as delivery_order_amount,
+            (SELECT COUNT(h.bill_no) FROM bill_header h WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND h.Ord_Type = 'DE' ${locFilter.replace('loc_id', 'h.loc_id')}) as delivery_order_count,
+            (SELECT ISNULL(SUM(h.No_Of_Pax), 0) FROM bill_header h WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND h.Ord_Type = 'DE' ${locFilter.replace('loc_id', 'h.loc_id')}) as delivery_order_guests,
+
+            (SELECT ISNULL(SUM(h.bill_amt - h.tax - h.Service_charge_Amt), 0) FROM bill_header h WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND h.Ord_Type = 'QS' ${locFilter.replace('loc_id', 'h.loc_id')}) as quick_service_order_amount,
+            (SELECT COUNT(h.bill_no) FROM bill_header h WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND h.Ord_Type = 'QS' ${locFilter.replace('loc_id', 'h.loc_id')}) as quick_service_order_count,
+            (SELECT ISNULL(SUM(h.No_Of_Pax), 0) FROM bill_header h WHERE CAST(h.bill_date AS DATE) = @today AND h.bill_valid != 'X' AND h.Ord_Type = 'QS' ${locFilter.replace('loc_id', 'h.loc_id')}) as quick_service_order_guests,
+            
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN tax ELSE 0 END), 0) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as total_tax,
             (SELECT COUNT(DISTINCT CASE WHEN bill_valid != 'X' AND tax > 0 THEN bill_no END) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as tax_count
     `;
