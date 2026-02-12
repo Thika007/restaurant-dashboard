@@ -46,6 +46,17 @@ export const login = async (req, res) => {
     }
 };
 
+export const getLocationIds = async (req, res) => {
+    try {
+        const locations = await authService.getLocationIds();
+        res.json(locations);
+    } catch (error) {
+        console.error("Get Locations Error:", error);
+        res.status(500).json({ message: "Internal Server Error", details: error.message });
+    }
+};
+
 export default {
-    login
+    login,
+    getLocationIds
 };

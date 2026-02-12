@@ -4,10 +4,14 @@ export const getBillReport = async (req, res) => {
     try {
         const { startDate, endDate, txnType, orderType, sort } = req.query;
 
+        const isAdmin = req.user.supervisor === 'Y' || req.user.alowmaster === 'Y';
+        const locationId = (isAdmin && req.query.locationId) ? req.query.locationId : req.user.locationId;
+
         const filters = {
             txnType: txnType ? txnType.split(',') : ['all'],
             orderType: orderType ? orderType.split(',') : ['all'],
-            sort
+            sort,
+            locationId
         };
 
         const result = await reportService.getBillReport(startDate, endDate, filters);
@@ -20,14 +24,21 @@ export const getBillReport = async (req, res) => {
 
 export const getItemReport = async (req, res) => {
     try {
-        const { startDate, endDate, typeSelection, descSort, qtySort, amtSort, remark } = req.query;
+        const { startDate, endDate, txnType, orderType, categories, subCategories, itemName, descSort, qtySort, amtSort } = req.query;
+
+        const isAdmin = req.user.supervisor === 'Y' || req.user.alowmaster === 'Y';
+        const locationId = (isAdmin && req.query.locationId) ? req.query.locationId : req.user.locationId;
 
         const filters = {
-            typeSelection: typeSelection ? typeSelection.split(',') : ['all'],
+            txnType: txnType ? txnType.split(',') : ['all'],
+            orderType: orderType ? orderType.split(',') : ['all'],
+            categories: categories ? categories.split(',') : ['all'],
+            subCategories: subCategories ? subCategories.split(',') : ['all'],
+            itemName,
             descSort,
             qtySort,
             amtSort,
-            remark: remark ? remark.split(',') : ['all']
+            locationId
         };
 
         const result = await reportService.getItemReport(startDate, endDate, filters);
@@ -38,7 +49,41 @@ export const getItemReport = async (req, res) => {
     }
 };
 
+export const getCategories = async (req, res) => {
+    try {
+        const result = await reportService.getCategories();
+        res.json(result);
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+        res.status(500).json({ error: "Internal Server Error", details: error.message });
+    }
+};
+
+export const getSubCategories = async (req, res) => {
+    try {
+        const { deptCode } = req.query;
+        const result = await reportService.getSubCategories(deptCode);
+        res.json(result);
+    } catch (error) {
+        console.error("Error fetching sub-categories:", error);
+        res.status(500).json({ error: "Internal Server Error", details: error.message });
+    }
+};
+
+export const getCardTypes = async (req, res) => {
+    try {
+        const result = await reportService.getCardTypes();
+        res.json(result);
+    } catch (error) {
+        console.error("Error fetching card types:", error);
+        res.status(500).json({ error: "Internal Server Error", details: error.message });
+    }
+};
+
 export default {
     getBillReport,
-    getItemReport
+    getItemReport,
+    getCategories,
+    getSubCategories,
+    getCardTypes
 };
