@@ -190,14 +190,24 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
         SELECT 
             t.tran_code as Code,
             t.tran_desc as Description,
-            SUM(ISNULL(t.tran_qty, 0)) as Qty,
-            SUM(ISNULL(t.tran_amt, 0)) as Amount,
+            SUM(
+                CASE 
+                    WHEN t.type_code IN ('VV', 'WA', 'CO', 'ST') AND t.unit_price > 0 THEN ABS(t.tran_amt2) / t.unit_price 
+                    ELSE ISNULL(t.tran_qty, 0) 
+                END
+            ) as Qty,
+            SUM(
+                CASE 
+                    WHEN t.type_code IN ('VV', 'WA', 'CO', 'ST', 'R', 'RR', 'RS') THEN ABS(t.tran_amt2)
+                    ELSE ISNULL(t.tran_amt, 0)
+                END
+            ) as Amount,
             MAX(i.dept_code) as Dept_Code,
             MAX(i.class_id) as Class_id
         FROM bill_tran t
         INNER JOIN bill_header h ON t.bill_no = h.bill_no
         LEFT JOIN Item_mast i ON t.tran_code = i.barcode
-        WHERE t.type_code IN ('RS', 'RR', 'VV', 'WA')
+        WHERE t.type_code IN ('RS', 'RR', 'VV', 'WA', 'CO', 'ST')
     `;
 
     if (startDate && endDate) {
@@ -248,15 +258,32 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
             wastage: ['WA']
         };
 
+        const directFilterMap = ['void', 'refund', 'wastage'];
         const dbTxnTypes = [];
+        const dbAdjustmentTypes = [];
         const cardTypes = [];
+
         filters.txnType.forEach(t => {
             if (t.startsWith('CC_')) {
                 cardTypes.push(t.substring(3));
             } else if (txnMap[t]) {
-                dbTxnTypes.push(...txnMap[t]);
+                if (directFilterMap.includes(t)) {
+                    dbAdjustmentTypes.push(...txnMap[t]);
+                } else {
+                    dbTxnTypes.push(...txnMap[t]);
+                }
             }
         });
+
+        if (dbAdjustmentTypes.length > 0) {
+            const params = [];
+            dbAdjustmentTypes.forEach((val, i) => {
+                const paramName = `adjType${i}`;
+                request.input(paramName, sql.VarChar, val);
+                params.push(`@${paramName}`);
+            });
+            query += ` AND t.type_code IN (${params.join(',')})`;
+        }
 
         if (dbTxnTypes.length > 0 || cardTypes.length > 0) {
             let txnClause = '';
