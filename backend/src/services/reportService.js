@@ -207,7 +207,7 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
         FROM bill_tran t
         INNER JOIN bill_header h ON t.bill_no = h.bill_no
         LEFT JOIN Item_mast i ON t.tran_code = i.barcode
-        WHERE t.type_code IN ('RS', 'RR', 'VV', 'WA', 'CO', 'ST')
+        WHERE t.type_code IN ('RS', 'RR', 'VV', 'WA', 'CO', 'ST', 'S')
     `;
 
     if (startDate && endDate) {
@@ -259,9 +259,12 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
         };
 
         const directFilterMap = ['void', 'refund', 'wastage'];
+        const billItemFilterMap = ['complimentary', 'staff'];
         const dbTxnTypes = [];
         const dbAdjustmentTypes = [];
         const cardTypes = [];
+        let showOnlyRSItems = false;
+        let isAdjustmentActive = false;
 
         filters.txnType.forEach(t => {
             if (t.startsWith('CC_')) {
@@ -269,6 +272,11 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
             } else if (txnMap[t]) {
                 if (directFilterMap.includes(t)) {
                     dbAdjustmentTypes.push(...txnMap[t]);
+                    isAdjustmentActive = true;
+                } else if (billItemFilterMap.includes(t)) {
+                    dbTxnTypes.push(...txnMap[t]);
+                    showOnlyRSItems = true;
+                    isAdjustmentActive = true;
                 } else {
                     dbTxnTypes.push(...txnMap[t]);
                 }
@@ -283,6 +291,13 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
                 params.push(`@${paramName}`);
             });
             query += ` AND t.type_code IN (${params.join(',')})`;
+        }
+
+        if (showOnlyRSItems) {
+            query += ` AND t.type_code = 'RS'`;
+        } else if (!isAdjustmentActive && (!filters.txnType || filters.txnType.includes('all') || !filters.txnType.some(tp => ['cash', 'cardPay', 'credit', 'creditPaid'].includes(tp)))) {
+            // Default view or no item-showing filter active: hide 'RS' items to stay focused on adjustments
+            query += ` AND t.type_code != 'RS'`;
         }
 
         if (dbTxnTypes.length > 0 || cardTypes.length > 0) {
