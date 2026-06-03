@@ -20,3 +20,320 @@ body {
 .glass-card {
   @apply bg-white/70 backdrop-blur-md border border-white/30 shadow-lg rounded-2xl;
 }
+
+/* ── Refresh Button ── */
+.refresh-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #fff;
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(30, 58, 138, 0.3);
+}
+
+.refresh-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.refresh-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(30, 58, 138, 0.45);
+}
+
+.refresh-btn:hover::before {
+  opacity: 1;
+}
+
+.refresh-btn:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: 0 2px 8px rgba(30, 58, 138, 0.3);
+}
+
+.refresh-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none !important;
+  box-shadow: 0 2px 8px rgba(30, 58, 138, 0.2);
+}
+
+/* ── Spin animation for refresh icon ── */
+@keyframes spin-smooth {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.refresh-icon-spin {
+  animation: spin-smooth 0.8s linear infinite;
+}
+
+/* ── Shimmer overlay for cards during refresh ── */
+@keyframes shimmer-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.card-refreshing {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.card-refreshing > * {
+  opacity: 0.45;
+  transition: opacity 0.3s ease;
+}
+
+.card-refreshing::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(30, 58, 138, 0.06) 30%,
+    rgba(59, 130, 246, 0.12) 50%,
+    rgba(30, 58, 138, 0.06) 70%,
+    transparent 100%
+  );
+  animation: shimmer-slide 1.5s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ── Pulse ring animation on button click ── */
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+.refresh-btn-pulse {
+  animation: pulse-ring 0.6s ease-out;
+}
+
+/* ── KPI Card Transitions ── */
+.kpi-card-anim {
+  transition: 
+    opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    padding 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    margin 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    min-height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    border-width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.kpi-card-visible {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.kpi-card-hidden {
+  opacity: 0;
+  transform: scale(0.9) translateY(10px);
+  width: 0 !important;
+  max-width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-width: 0 !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  pointer-events: none;
+  overflow: hidden;
+  margin-right: -12px !important;
+}
+
+@media (min-width: 640px) {
+  .kpi-card-hidden {
+    margin-right: -24px !important;
+  }
+}
+
+.kpi-flex-5 {
+  width: calc(50% - 6px);
+  flex-grow: 1;
+  flex-shrink: 0;
+}
+@media (min-width: 1024px) {
+  .kpi-flex-5 {
+    width: calc(20% - 19.2px);
+  }
+}
+
+.kpi-flex-4 {
+  width: calc(50% - 6px);
+  flex-grow: 1;
+  flex-shrink: 0;
+}
+@media (min-width: 1024px) {
+  .kpi-flex-4 {
+    width: calc(25% - 18px);
+  }
+}
+
+.kpi-flex-3 {
+  width: 100%;
+  flex-grow: 1;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .kpi-flex-3 {
+    width: calc(50% - 6px);
+  }
+}
+@media (min-width: 1024px) {
+  .kpi-flex-3 {
+    width: calc(33.333% - 16px);
+  }
+}
+
+.kpi-flex-2 {
+  width: 100%;
+  flex-grow: 1;
+  flex-shrink: 0;
+}
+@media (min-width: 1024px) {
+  .kpi-flex-2 {
+    width: calc(50% - 12px);
+  }
+}
+
+/* ── Sticky Navbar Offsets & Helper Classes ── */
+:root {
+  --navbar-height: 56px;
+}
+@media (min-width: 640px) {
+  :root {
+    --navbar-height: 72px;
+  }
+}
+
+.sticky-header-offset {
+  top: var(--navbar-scroll-offset, 0px) !important;
+  transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sticky-table-header-offset {
+  z-index: 10;
+}
+
+@media (min-width: 768px) {
+  .sticky-table-header-offset {
+    position: sticky !important;
+    top: calc(var(--navbar-scroll-offset, 0px) + var(--header-height, 84px)) !important;
+    transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* ── Separate Table Borders Helper ── */
+.border-separate tbody tr td {
+  border-bottom: 1px solid #f1f5f9;
+}
+.border-separate thead tr th {
+  border-bottom: 2px solid #e2e8f0;
+}
+
+/* ── Modern Grid Table Design ── */
+.grid-table {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.grid-table-header {
+  z-index: 10;
+  display: grid;
+  align-items: center;
+  background-color: #f8fafc; /* bg-slate-50 */
+  border-bottom: 2px solid #e2e8f0; /* border-slate-200 */
+}
+
+@media (min-width: 768px) {
+  .grid-table-header {
+    position: sticky !important;
+    top: calc(var(--navbar-scroll-offset, 0px) + var(--header-height, 84px)) !important;
+    transition: top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+.grid-table-header-static {
+  position: static !important;
+}
+
+.grid-table-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.grid-table-row {
+  display: grid;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9; /* border-slate-100 */
+  background-color: #fff;
+  transition: all 0.2s ease;
+}
+
+.grid-table-row:hover {
+  background-color: #f8fafc;
+}
+
+.grid-table-footer {
+  display: grid;
+  align-items: center;
+  background-color: rgba(248, 250, 252, 0.8);
+  border-top: 2px solid #e2e8f0;
+}
+
+.grid-table-cell {
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem; /* text-xs */
+  font-weight: 600; /* font-semibold */
+  color: #334155; /* text-slate-700 */
+}
+
+.grid-table-header-cell {
+  padding: 1rem 1rem;
+  font-size: 0.625rem; /* text-[10px] */
+  font-weight: 900; /* font-black */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b; /* text-slate-500 */
+}
+
+/* Column Templates */
+.cols-bill-report {
+  grid-template-columns: 1.1fr 1fr 1fr 0.9fr 1.2fr 1.2fr 1.4fr 1.2fr 1.5fr;
+}
+
+.cols-item-report {
+  grid-template-columns: 1.5fr 3.5fr 1fr 1.5fr;
+}
+
+.cols-collections-report {
+  grid-template-columns: 2fr 1.2fr 1.5fr;
+}

@@ -9,5 +9,6 @@ router.get('/trend', historyController.getHistorySalesTrend);
 router.get('/top-items', historyController.getHistoryTopItems);
 router.get('/order-types', historyController.getHistoryOrderTypes);
 router.get('/payment-methods', historyController.getHistoryPaymentMethods);
+router.get('/collections', historyController.getHistoryCollections);
 
 export default router;

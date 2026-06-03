@@ -1,21 +1,21 @@
 import { getConnection } from '../config/db.js';
 import sql from 'mssql';
 
-export const getBillReport = async (startDate, endDate, filters = {}) => {
+export const getBillReport = async (startDate, endDate, filters = {}, page = 1, pageSize = 50) => {
     const pool = await getConnection();
     const request = pool.request();
 
     let query = `
         SELECT 
             h.bill_no as Bill_Id,
-            ISNULL((SELECT SUM(t.tran_amt) FROM bill_tran t WHERE t.bill_no = h.bill_no AND (t.tran_type = 'S' OR t.type_code = 'RS')), 0) as Amount,
+            (ISNULL(h.bill_amt, 0) - ISNULL(h.tax, 0) - ISNULL(h.Service_charge_Amt, 0) + ABS(ISNULL(h.Discount_Amt, 0))) as Amount,
             ISNULL(h.Discount_Amt, 0) as Discount_Amt,
             h.tax as TAX,
             h.Service_charge_Amt as Service_Charge,
             h.bill_amt as Total_Amount,
             CASE 
                 WHEN h.bill_valid = 'X' THEN 'Cancel bill'
-                WHEN EXISTS (SELECT 1 FROM bill_tran t2 WHERE t2.bill_no = h.bill_no AND t2.tran_valid = 'Y') THEN 'Incomplete Bill'
+                WHEN EXISTS (SELECT 1 FROM History_tran t2 WHERE t2.bill_no = h.bill_no AND t2.Loc_id = h.loc_id AND t2.mech_no = h.mech_no AND t2.bill_date = h.bill_date AND t2.tran_valid = 'Y') THEN 'Incomplete Bill'
                 ELSE (
                     SELECT TOP 1 
                         CASE 
@@ -31,9 +31,9 @@ export const getBillReport = async (startDate, endDate, filters = {}) => {
                             WHEN t.type_code = 'WA' THEN 'Wastage'
                             ELSE t.type_code 
                         END
-                    FROM bill_tran t 
+                    FROM History_tran t 
                     LEFT JOIN cc_mast cc ON LTRIM(RTRIM(t.key_code)) = LTRIM(RTRIM(cc.cc_no))
-                    WHERE t.bill_no = h.bill_no 
+                    WHERE t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date AND t.tran_amt = h.bill_amt 
                     AND t.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'RR', 'CO', 'VV', 'XX', 'ST', 'WA')
                     ORDER BY CASE 
                         WHEN t.type_code IN ('MM', 'CC', 'CS', 'CP', 'CO', 'ST') THEN 1 
@@ -43,15 +43,15 @@ export const getBillReport = async (startDate, endDate, filters = {}) => {
             END as Transaction_Type,
             CASE 
                 WHEN h.bill_valid = 'X' THEN 'X'
-                WHEN EXISTS (SELECT 1 FROM bill_tran t2 WHERE t2.bill_no = h.bill_no AND t2.tran_valid = 'Y') THEN 'Y'
+                WHEN EXISTS (SELECT 1 FROM History_tran t2 WHERE t2.bill_no = h.bill_no AND t2.Loc_id = h.loc_id AND t2.mech_no = h.mech_no AND t2.bill_date = h.bill_date AND t2.tran_valid = 'Y') THEN 'Y'
                 ELSE (
                     SELECT TOP 1 
                         CASE 
                             WHEN t3.type_code = 'CC' THEN 'CC_' + LTRIM(RTRIM(t3.key_code))
                             ELSE t3.type_code 
                         END
-                    FROM bill_tran t3 
-                    WHERE t3.bill_no = h.bill_no AND t3.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'RR', 'CO', 'VV', 'XX', 'ST', 'WA')
+                    FROM History_tran t3 
+                    WHERE t3.bill_no = h.bill_no AND t3.Loc_id = h.loc_id AND t3.mech_no = h.mech_no AND t3.bill_date = h.bill_date AND t3.tran_amt = h.bill_amt AND t3.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'RR', 'CO', 'VV', 'XX', 'ST', 'WA')
                     ORDER BY CASE 
                         WHEN t3.type_code IN ('MM', 'CC', 'CS', 'CP', 'CO', 'ST') THEN 1 
                         ELSE 2 
@@ -67,12 +67,12 @@ export const getBillReport = async (startDate, endDate, filters = {}) => {
             END as Order_Type,
             h.remarks as Remark,
             h.bill_date
-        FROM bill_header h
+        FROM History_header h
         WHERE 1=1
     `;
 
     if (startDate && endDate) {
-        query += ` AND CAST(h.bill_date AS DATE) BETWEEN @startDate AND @endDate`;
+        query += ` AND h.bill_date >= @startDate AND h.bill_date < DATEADD(day, 1, @endDate)`;
         request.input('startDate', sql.Date, startDate);
         request.input('endDate', sql.Date, endDate);
     }
@@ -103,12 +103,7 @@ export const getBillReport = async (startDate, endDate, filters = {}) => {
         }
     }
 
-    let finalQuery = `
-        WITH BillData AS (
-            ${query}
-        )
-        SELECT * FROM BillData WHERE 1=1
-    `;
+    let finalFilterClause = '';
 
     if (filters.txnType && !filters.txnType.includes('all')) {
         const txnMap = {
@@ -160,29 +155,53 @@ export const getBillReport = async (startDate, endDate, filters = {}) => {
             }
 
             if (txnClause) {
-                finalQuery += ` AND ${txnClause}`;
+                finalFilterClause += ` AND ${txnClause}`;
             }
         }
     }
 
+    // Get total count matching this report query
+    const countQuery = `
+        WITH BillData AS (
+            ${query}
+        )
+        SELECT COUNT(*) as total FROM BillData WHERE 1=1 ${finalFilterClause}
+    `;
+    const countResult = await request.query(countQuery);
+    const total = countResult.recordset[0]?.total || 0;
+
     // Apply Sorting
+    let sortClause = '';
     if (filters.sort) {
         if (filters.sort === 'minMax') {
-            finalQuery += ` ORDER BY Total_Amount ASC`;
+            sortClause = ` ORDER BY Total_Amount ASC`;
         } else if (filters.sort === 'maxMin') {
-            finalQuery += ` ORDER BY Total_Amount DESC`;
+            sortClause = ` ORDER BY Total_Amount DESC`;
         } else {
-            finalQuery += ` ORDER BY Bill_Id ASC`;
+            sortClause = ` ORDER BY Bill_Id ASC`;
         }
     } else {
-        finalQuery += ` ORDER BY bill_date DESC`;
+        sortClause = ` ORDER BY bill_date DESC`;
     }
 
-    const result = await request.query(finalQuery);
-    return result.recordset;
+    const offset = (page - 1) * pageSize;
+    request.input('offset', sql.Int, offset);
+    request.input('pageSize', sql.Int, pageSize);
+
+    const dataQuery = `
+        WITH BillData AS (
+            ${query}
+        )
+        SELECT * FROM BillData WHERE 1=1 ${finalFilterClause}
+        ${sortClause}
+        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
+    `;
+
+    const result = await request.query(dataQuery);
+    return { data: result.recordset, total };
 };
 
-export const getItemReport = async (startDate, endDate, filters = {}) => {
+export const getItemReport = async (startDate, endDate, filters = {}, page = 1, pageSize = 50) => {
     const pool = await getConnection();
     const request = pool.request();
 
@@ -192,21 +211,26 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
             t.tran_desc as Description,
             SUM(
                 CASE 
-                    WHEN t.type_code = 'VV' AND t.unit_price > 0 THEN ABS(t.tran_amt2) / t.unit_price 
+                    WHEN t.type_code IN ('VV', 'WA', 'CO', 'ST') AND t.unit_price > 0 THEN ABS(t.tran_amt2) / t.unit_price 
                     ELSE ISNULL(t.tran_qty, 0) 
                 END
             ) as Qty,
-            SUM(ISNULL(t.tran_amt, 0)) as Amount,
+            SUM(
+                CASE 
+                    WHEN t.type_code IN ('VV', 'WA', 'CO', 'ST', 'R', 'RR', 'RS') THEN ABS(t.tran_amt2)
+                    ELSE ISNULL(t.tran_amt, 0)
+                END
+            ) as Amount,
             MAX(i.dept_code) as Dept_Code,
             MAX(i.class_id) as Class_id
-        FROM bill_tran t
-        INNER JOIN bill_header h ON t.bill_no = h.bill_no
+        FROM History_tran t
+        INNER JOIN History_header h ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
         LEFT JOIN Item_mast i ON t.tran_code = i.barcode
-        WHERE t.type_code IN ('RS', 'RR', 'VV', 'WA')
+        WHERE t.type_code IN ('RS', 'RR', 'VV', 'WA', 'CO', 'ST', 'S')
     `;
 
     if (startDate && endDate) {
-        query += ` AND CAST(h.bill_date AS DATE) BETWEEN @startDate AND @endDate`;
+        query += ` AND h.bill_date >= @startDate AND h.bill_date < DATEADD(day, 1, @endDate)`;
         request.input('startDate', sql.Date, startDate);
         request.input('endDate', sql.Date, endDate);
     }
@@ -253,17 +277,25 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
             wastage: ['WA']
         };
 
-        const adjustmentMap = ['void', 'refund', 'wastage', 'complimentary', 'staff'];
+        const directFilterMap = ['void', 'refund', 'wastage'];
+        const billItemFilterMap = ['complimentary', 'staff'];
         const dbTxnTypes = [];
         const dbAdjustmentTypes = [];
         const cardTypes = [];
+        let showOnlyRSItems = false;
+        let isAdjustmentActive = false;
 
         filters.txnType.forEach(t => {
             if (t.startsWith('CC_')) {
                 cardTypes.push(t.substring(3));
             } else if (txnMap[t]) {
-                if (adjustmentMap.includes(t)) {
+                if (directFilterMap.includes(t)) {
                     dbAdjustmentTypes.push(...txnMap[t]);
+                    isAdjustmentActive = true;
+                } else if (billItemFilterMap.includes(t)) {
+                    dbTxnTypes.push(...txnMap[t]);
+                    showOnlyRSItems = true;
+                    isAdjustmentActive = true;
                 } else {
                     dbTxnTypes.push(...txnMap[t]);
                 }
@@ -280,6 +312,13 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
             query += ` AND t.type_code IN (${params.join(',')})`;
         }
 
+        if (showOnlyRSItems) {
+            query += ` AND t.type_code = 'RS'`;
+        } else if (!isAdjustmentActive && !filters.txnType.some(tp => ['cash', 'cardPay', 'credit', 'creditPaid'].includes(tp) || tp.startsWith('CC_'))) {
+            // Default view or no item-showing filter active: hide 'RS' items to stay focused on adjustments
+            query += ` AND t.type_code != 'RS'`;
+        }
+
         if (dbTxnTypes.length > 0 || cardTypes.length > 0) {
             let txnClause = '';
             if (dbTxnTypes.length > 0) {
@@ -289,7 +328,7 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
                     request.input(paramName, sql.VarChar, val);
                     params.push(`@${paramName}`);
                 });
-                txnClause = `EXISTS (SELECT 1 FROM bill_tran t2 WHERE t2.bill_no = h.bill_no AND t2.type_code IN (${params.join(',')}))`;
+                txnClause = `EXISTS (SELECT 1 FROM History_tran t2 WHERE t2.bill_no = h.bill_no AND t2.Loc_id = h.loc_id AND t2.mech_no = h.mech_no AND t2.bill_date = h.bill_date AND t2.type_code IN (${params.join(',')}))`;
             }
 
             if (cardTypes.length > 0) {
@@ -299,7 +338,7 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
                     request.input(paramName, sql.VarChar, val);
                     cardParams.push(`@${paramName}`);
                 });
-                const cardClause = `EXISTS (SELECT 1 FROM bill_tran t3 WHERE t3.bill_no = h.bill_no AND t3.type_code = 'CC' AND LTRIM(RTRIM(t3.key_code)) IN (${cardParams.join(',')}))`;
+                const cardClause = `EXISTS (SELECT 1 FROM History_tran t3 WHERE t3.bill_no = h.bill_no AND t3.Loc_id = h.loc_id AND t3.mech_no = h.mech_no AND t3.bill_date = h.bill_date AND t3.type_code = 'CC' AND LTRIM(RTRIM(t3.key_code)) IN (${cardParams.join(',')}))`;
                 txnClause = txnClause ? `(${txnClause} OR ${cardClause})` : cardClause;
             }
 
@@ -338,16 +377,40 @@ export const getItemReport = async (startDate, endDate, filters = {}) => {
 
     query += ` GROUP BY t.tran_code, t.tran_desc`;
 
-    // Sorting
-    if (filters.descSort === 'aToZ') query += ` ORDER BY t.tran_desc ASC`;
-    else if (filters.qtySort === 'maxMin') query += ` ORDER BY Qty DESC`;
-    else if (filters.qtySort === 'minMax') query += ` ORDER BY Qty ASC`;
-    else if (filters.amtSort === 'maxMin') query += ` ORDER BY Amount DESC`;
-    else if (filters.amtSort === 'minMax') query += ` ORDER BY Amount ASC`;
-    else query += ` ORDER BY Amount DESC`;
+    // Get total count matching this item query
+    const countQuery = `
+        WITH ItemData AS (
+            ${query}
+        )
+        SELECT COUNT(*) as total FROM ItemData
+    `;
+    const countResult = await request.query(countQuery);
+    const total = countResult.recordset[0]?.total || 0;
 
-    const result = await request.query(query);
-    return result.recordset;
+    // Apply Sorting
+    let sortClause = '';
+    if (filters.descSort === 'aToZ') sortClause = ` ORDER BY Description ASC`;
+    else if (filters.qtySort === 'maxMin') sortClause = ` ORDER BY Qty DESC`;
+    else if (filters.qtySort === 'minMax') sortClause = ` ORDER BY Qty ASC`;
+    else if (filters.amtSort === 'maxMin') sortClause = ` ORDER BY Amount DESC`;
+    else if (filters.amtSort === 'minMax') sortClause = ` ORDER BY Amount ASC`;
+    else sortClause = ` ORDER BY Amount DESC`;
+
+    const offset = (page - 1) * pageSize;
+    request.input('offset', sql.Int, offset);
+    request.input('pageSize', sql.Int, pageSize);
+
+    const dataQuery = `
+        WITH ItemData AS (
+            ${query}
+        )
+        SELECT * FROM ItemData
+        ${sortClause}
+        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
+    `;
+
+    const result = await request.query(dataQuery);
+    return { data: result.recordset, total };
 };
 
 export const getCategories = async () => {

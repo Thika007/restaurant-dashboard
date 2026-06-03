@@ -18,7 +18,11 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+    origin: true,
+    credentials: true,
+    maxAge: 86400 // Cache preflight OPTIONS responses for 24 hours
+}));
 app.use(express.json());
 
 // Routes

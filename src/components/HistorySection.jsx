@@ -1,88 +1,95 @@
-import React, { useState } from 'react';
-import { Calendar, Download, Filter, Search } from 'lucide-react';
-import { format } from 'date-fns';
+import React from 'react';
 
-const HistorySection = ({ hideFilters, t, data }) => {
-    const [startDate, setStartDate] = useState('2026-01-01');
-    const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+const HistorySection = ({ t, collections = [] }) => {
+    const isSinhala = t.total === 'එකතුව';
+    
+    const getPaymentTypeName = (typeCode, defaultName) => {
+        if (typeCode === 'CC') {
+            return defaultName;
+        }
+        
+        const mappings = {
+            en: {
+                'MM': 'Cash',
+                'CS': 'Credit',
+                'CP': 'Credit Paid',
+                'CO': 'Complementary',
+                'ST': 'Staff',
+                'WA': 'Wastage',
+                'VV': 'Void',
+                'R': 'Refund',
+                'RR': 'Refund'
+            },
+            si: {
+                'MM': 'මුදල් (Cash)',
+                'CS': 'ණය (Credit)',
+                'CP': 'ණය පියවීම් (Credit Paid)',
+                'CO': 'හිමිකරුගේ (Complementary)',
+                'ST': 'කාර්ය මණ්ඩලය (Staff)',
+                'WA': 'අපතේ යාම් (Wastage)',
+                'VV': 'අවලංගු කිරීම් (Void)',
+                'R': 'මුදල් ආපසු ගෙවීම් (Refund)',
+                'RR': 'මුදල් ආපසු ගෙවීම් (Refund)'
+            }
+        };
+        
+        const langKey = isSinhala ? 'si' : 'en';
+        return mappings[langKey][typeCode] || defaultName;
+    };
 
-    const historyData = data || [];
+    const totalCount = collections.reduce((sum, item) => sum + (item.billCount || 0), 0);
+    const totalAmount = collections.reduce((sum, item) => sum + (item.amount || 0), 0);
 
     return (
         <div className="space-y-6">
-            {!hideFilters && (
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <Calendar className="w-5 h-5 text-slate-400" />
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="border-none bg-slate-100 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-dashboard-blue"
-                            />
-                        </div>
-                        <span className="text-slate-400">{t.to || 'to'}</span>
-                        <input
-                            type="date"
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            className="border-none bg-slate-100 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-dashboard-blue"
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium transition-colors">
-                            <Filter className="w-4 h-4" />
-                            {t.filter || 'Filter'}
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-dashboard-blue text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors">
-                            <Download className="w-4 h-4" />
-                            {t.export}
-                        </button>
-                    </div>
+            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
+                <div className="p-5 border-b border-slate-100 bg-slate-50/50">
+                    <h3 className="text-lg font-bold text-slate-800">{t.title}</h3>
+                    <p className="text-xs text-slate-500 mt-1">{t.subtitle}</p>
                 </div>
-            )}
 
-            <div className="glass-card overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t.txnId}</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t.dateTime}</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t.orderDetails}</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t.amount}</th>
-                                <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">{t.status}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                            {historyData.map((row, index) => (
-                                <tr key={row.TransID || index} className="hover:bg-slate-50 transition-colors">
-                                    <td className="px-6 py-4 text-sm font-medium text-slate-900">{row.Bill_Id}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-500">{new Date(row.TransDate).toLocaleString()}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-700">{row.Item_Name} x{row.Qty}</td>
-                                    <td className="px-6 py-4 text-sm font-bold text-slate-900">{row.LineTotal.toLocaleString()}</td>
-                                    <td className="px-6 py-4 text-sm">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700`}>
-                                            {t.completed}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-                <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between text-sm text-slate-500">
-                    <p>
-                        {t.showing
-                            .replace('{start}', historyData.length > 0 ? '1' : '0')
-                            .replace('{end}', historyData.length.toString())
-                            .replace('{total}', historyData.length.toString())}
-                    </p>
-                    <div className="flex gap-2">
-                        <button className="px-3 py-1 border border-slate-200 rounded hover:bg-white disabled:opacity-50" disabled>{t.previous}</button>
-                        <button className="px-3 py-1 border border-slate-200 rounded hover:bg-white disabled:opacity-50" disabled>{t.next}</button>
+                    <div className="grid-table min-w-[600px]">
+                        {/* Table Header */}
+                        <div className="grid-table-header grid-table-header-static cols-collections-report rounded-t-none">
+                            <div className="grid-table-header-cell">{t.colMethod}</div>
+                            <div className="grid-table-header-cell text-right">{t.colCount}</div>
+                            <div className="grid-table-header-cell text-right">{t.colAmount}</div>
+                        </div>
+
+                        {/* Table Body */}
+                        <div className="grid-table-body">
+                            {collections.length === 0 ? (
+                                <div className="p-8 text-center text-sm text-slate-400">
+                                    No data available
+                                </div>
+                            ) : (
+                                collections.map((col, index) => (
+                                    <div key={col.typeCode + '_' + col.keyCode + '_' + index} className="grid-table-row cols-collections-report">
+                                        <div className="grid-table-cell font-semibold text-slate-800">
+                                            {getPaymentTypeName(col.typeCode, col.name)}
+                                        </div>
+                                        <div className="grid-table-cell text-right font-medium text-slate-600">
+                                            {col.billCount.toLocaleString()}
+                                        </div>
+                                        <div className="grid-table-cell text-right font-bold text-slate-900">
+                                            {col.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Table Footer / Total Row */}
+                        {collections.length > 0 && (
+                            <div className="grid-table-footer cols-collections-report bg-slate-50 font-black text-slate-800">
+                                <div className="grid-table-cell uppercase tracking-wider font-extrabold">{t.total}</div>
+                                <div className="grid-table-cell text-right font-bold">{totalCount.toLocaleString()}</div>
+                                <div className="grid-table-cell text-right font-black text-dashboard-blue">
+                                    {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

@@ -2,10 +2,14 @@ import historyService from '../services/historyService.js';
 
 export const getHistory = async (req, res) => {
     try {
-        const { startDate, endDate, locationId: queryLocId } = req.query;
+        const { startDate, endDate, locationId: queryLocId, page, pageSize } = req.query;
         const isAdmin = req.user.supervisor === 'Y' || req.user.alowmaster === 'Y';
         const locationId = (isAdmin && queryLocId) ? queryLocId : req.user.locationId;
-        const history = await historyService.getHistory(startDate, endDate, locationId);
+
+        const pageNum = parseInt(page, 10) || 1;
+        const pageSizeNum = parseInt(pageSize, 10) || 50;
+
+        const history = await historyService.getHistory(startDate, endDate, locationId, pageNum, pageSizeNum);
         res.json(history);
     } catch (error) {
         console.error("History Controller Error:", error);
@@ -78,11 +82,25 @@ export const getHistoryPaymentMethods = async (req, res) => {
     }
 };
 
+export const getHistoryCollections = async (req, res) => {
+    try {
+        const { startDate, endDate, locationId: queryLocId } = req.query;
+        const isAdmin = req.user.supervisor === 'Y' || req.user.alowmaster === 'Y';
+        const locationId = (isAdmin && queryLocId) ? queryLocId : req.user.locationId;
+        const collections = await historyService.getHistoryCollections(startDate, endDate, locationId);
+        res.json(collections);
+    } catch (error) {
+        console.error("History Collections Error:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 export default {
     getHistory,
     getHistoryStats,
     getHistorySalesTrend,
     getHistoryTopItems,
     getHistoryOrderTypes,
-    getHistoryPaymentMethods
+    getHistoryPaymentMethods,
+    getHistoryCollections
 };

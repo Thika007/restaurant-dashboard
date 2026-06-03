@@ -1,10 +1,46 @@
 import { getConnection } from '../config/db.js';
 import sql from 'mssql';
 
-export const getHistory = async (startDate, endDate, locationId) => {
+export const getHistory = async (startDate, endDate, locationId, page = 1, pageSize = 50) => {
     const pool = await getConnection();
+    const request = pool.request();
 
-    let query = `
+    let whereClause = ` WHERE h.bill_valid != 'X' AND t.tran_type = 'S'`;
+
+    if (locationId && String(locationId).trim() !== '000') {
+        const trimmedLocId = String(locationId).trim();
+        whereClause += ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
+        request.input('locationId', sql.VarChar, trimmedLocId);
+    }
+
+    if (startDate && endDate) {
+        whereClause += ` AND h.bill_date >= @startDate AND h.bill_date < DATEADD(day, 1, @endDate)`;
+        request.input('startDate', sql.Date, startDate);
+        request.input('endDate', sql.Date, endDate);
+    } else if (startDate) {
+        whereClause += ` AND h.bill_date >= @startDate`;
+        request.input('startDate', sql.Date, startDate);
+    } else if (endDate) {
+        whereClause += ` AND h.bill_date < DATEADD(day, 1, @endDate)`;
+        request.input('endDate', sql.Date, endDate);
+    }
+
+    // Get total count
+    const countQuery = `
+        SELECT COUNT(*) as total
+        FROM History_header h
+        INNER JOIN History_tran t ON h.bill_no = t.bill_no
+        ${whereClause}
+    `;
+    const countResult = await request.query(countQuery);
+    const total = countResult.recordset[0]?.total || 0;
+
+    // Get paginated data
+    const offset = (page - 1) * pageSize;
+    request.input('offset', sql.Int, offset);
+    request.input('pageSize', sql.Int, pageSize);
+
+    const dataQuery = `
         SELECT 
             h.bill_no as Bill_Id, 
             t.tran_desc as Item_Name, 
@@ -12,35 +48,16 @@ export const getHistory = async (startDate, endDate, locationId) => {
             t.unit_price as UnitPrice, 
             t.tran_amt as LineTotal, 
             h.bill_date as TransDate
-        FROM bill_header h
-        INNER JOIN bill_tran t ON h.bill_no = t.bill_no
-        WHERE h.bill_valid != 'X' AND t.tran_type = 'S'
+        FROM History_header h
+        INNER JOIN History_tran t ON h.bill_no = t.bill_no
+        ${whereClause}
+        ORDER BY h.bill_date DESC
+        OFFSET @offset ROWS
+        FETCH NEXT @pageSize ROWS ONLY
     `;
 
-    const request = pool.request();
-
-    if (locationId && String(locationId).trim() !== '000') {
-        const trimmedLocId = String(locationId).trim();
-        query += ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
-        request.input('locationId', sql.VarChar, trimmedLocId);
-    }
-
-    if (startDate && endDate) {
-        query += ` AND CAST(h.bill_date AS DATE) BETWEEN @startDate AND @endDate`;
-        request.input('startDate', sql.Date, startDate);
-        request.input('endDate', sql.Date, endDate);
-    } else if (startDate) {
-        query += ` AND CAST(h.bill_date AS DATE) >= @startDate`;
-        request.input('startDate', sql.Date, startDate);
-    } else if (endDate) {
-        query += ` AND CAST(h.bill_date AS DATE) <= @endDate`;
-        request.input('endDate', sql.Date, endDate);
-    }
-
-    query += ` ORDER BY h.bill_date DESC`;
-
-    const result = await request.query(query);
-    return result.recordset;
+    const result = await request.query(dataQuery);
+    return { data: result.recordset, total };
 };
 
 export const getHistoryStats = async (startDate, endDate, locationId) => {
@@ -56,77 +73,134 @@ export const getHistoryStats = async (startDate, endDate, locationId) => {
 
     let dateFilter = "";
     if (startDate && endDate) {
-        dateFilter = ` AND CAST(bill_date AS DATE) BETWEEN @startDate AND @endDate`;
+        dateFilter = ` AND bill_date >= @startDate AND bill_date < DATEADD(day, 1, @endDate)`;
         request.input('startDate', sql.Date, startDate);
         request.input('endDate', sql.Date, endDate);
     } else if (startDate) {
-        dateFilter = ` AND CAST(bill_date AS DATE) >= @startDate`;
+        dateFilter = ` AND bill_date >= @startDate`;
         request.input('startDate', sql.Date, startDate);
     } else if (endDate) {
-        dateFilter = ` AND CAST(bill_date AS DATE) <= @endDate`;
+        dateFilter = ` AND bill_date < DATEADD(day, 1, @endDate)`;
         request.input('endDate', sql.Date, endDate);
     }
 
-    let query = `
+    // Query 1: Get all Header level stats in a single pass (avoiding 18 nested scans)
+    const headerQuery = `
         SELECT 
-            (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN bill_amt ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as total_revenue,
-            (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN bill_amt - tax - Service_charge_Amt ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as net_revenue,
-            (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN Service_charge_Amt ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as total_service_charge,
-            (SELECT COUNT(DISTINCT CASE WHEN bill_valid != 'X' AND Service_charge_Amt > 0 THEN bill_no END) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as service_charge_count,
-            (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN ABS(Discount_Amt) ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as total_discount,
-            (SELECT COUNT(DISTINCT CASE WHEN bill_valid != 'X' AND ABS(Discount_Amt) > 0 THEN bill_no END) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as discount_count,
-            (SELECT COUNT(DISTINCT CASE WHEN bill_valid != 'X' THEN bill_no END) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as bill_count,
-            (SELECT ISNULL(SUM(CASE WHEN bill_valid = 'X' THEN bill_amt ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as cancelled_amount,
-            (SELECT COUNT(DISTINCT CASE WHEN bill_valid = 'X' THEN bill_no END) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as cancelled_count,
-            (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN No_Of_Pax ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as guest_count,
-
-            (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code IN ('R', 'RR') ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as refund_amount,
-            (SELECT ISNULL(SUM(ABS(t.tran_qty)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code IN ('R', 'RR') ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as refund_items_count,
-            (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code IN ('R', 'RR') ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as refund_count,
-            
-            (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'VV' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as void_amount,
-            (SELECT ISNULL(SUM(CASE WHEN t.unit_price > 0 THEN ABS(t.tran_amt2) / t.unit_price ELSE 0 END), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'VV' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as void_items_count,
-            (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'VV' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as void_count,
-            
-            (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'CO' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as complimentary_amount,
-            (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'CO' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as complimentary_count,
-            
-            (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'ST' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as staff_amount,
-            (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'ST' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as staff_count,
-            
-            (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'WA' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as waste_amount,
-            (SELECT ISNULL(SUM(ABS(t.tran_qty)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND (t.type_code = 'RS' OR t.tran_type = 'S') AND EXISTS (SELECT 1 FROM bill_tran t2 WHERE t2.bill_no = h.bill_no AND t2.type_code = 'WA') ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as waste_items_count,
-            (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'WA' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as waste_count,
-            
-            (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'CS' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as credit_amount,
-            (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'CS' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as credit_count,
-            
-            (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'CP' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as credit_pay_amount,
-            (SELECT COUNT(DISTINCT t.bill_no) FROM bill_tran t JOIN bill_header h ON t.bill_no = h.bill_no WHERE h.bill_valid != 'X' AND t.type_code = 'CP' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}) as credit_pay_count,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN bill_amt ELSE 0 END), 0) as total_revenue,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN bill_amt - tax - Service_charge_Amt ELSE 0 END), 0) as net_revenue,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN Service_charge_Amt ELSE 0 END), 0) as total_service_charge,
+            SUM(CASE WHEN bill_valid != 'X' AND Service_charge_Amt > 0 THEN 1 ELSE 0 END) as service_charge_count,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN ABS(Discount_Amt) ELSE 0 END), 0) as total_discount,
+            SUM(CASE WHEN bill_valid != 'X' AND ABS(Discount_Amt) > 0 THEN 1 ELSE 0 END) as discount_count,
+            SUM(CASE WHEN bill_valid != 'X' THEN 1 ELSE 0 END) as bill_count,
+            ISNULL(SUM(CASE WHEN bill_valid = 'X' THEN bill_amt ELSE 0 END), 0) as cancelled_amount,
+            SUM(CASE WHEN bill_valid = 'X' THEN 1 ELSE 0 END) as cancelled_count,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN No_Of_Pax ELSE 0 END), 0) as guest_count,
 
             -- Order Type Metrics
-            (SELECT ISNULL(SUM(h.bill_amt - h.tax - h.Service_charge_Amt), 0) FROM bill_header h WHERE 1=1 AND h.bill_valid != 'X' AND h.Ord_Type = 'TO' ${locFilter} ${dateFilter}) as table_order_amount,
-            (SELECT COUNT(h.bill_no) FROM bill_header h WHERE 1=1 AND h.bill_valid != 'X' AND h.Ord_Type = 'TO' ${locFilter} ${dateFilter}) as table_order_count,
-            (SELECT ISNULL(SUM(h.No_Of_Pax), 0) FROM bill_header h WHERE 1=1 AND h.bill_valid != 'X' AND h.Ord_Type = 'TO' ${locFilter} ${dateFilter}) as table_order_guests,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' AND Ord_Type = 'TO' THEN bill_amt - tax - Service_charge_Amt ELSE 0 END), 0) as table_order_amount,
+            SUM(CASE WHEN bill_valid != 'X' AND Ord_Type = 'TO' THEN 1 ELSE 0 END) as table_order_count,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' AND Ord_Type = 'TO' THEN No_Of_Pax ELSE 0 END), 0) as table_order_guests,
 
-            (SELECT ISNULL(SUM(h.bill_amt - h.tax - h.Service_charge_Amt), 0) FROM bill_header h WHERE 1=1 AND h.bill_valid != 'X' AND h.Ord_Type = 'TA' ${locFilter} ${dateFilter}) as takeaway_order_amount,
-            (SELECT COUNT(h.bill_no) FROM bill_header h WHERE 1=1 AND h.bill_valid != 'X' AND h.Ord_Type = 'TA' ${locFilter} ${dateFilter}) as takeaway_order_count,
-            (SELECT ISNULL(SUM(h.No_Of_Pax), 0) FROM bill_header h WHERE 1=1 AND h.bill_valid != 'X' AND h.Ord_Type = 'TA' ${locFilter} ${dateFilter}) as takeaway_order_guests,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' AND Ord_Type = 'TA' THEN bill_amt - tax - Service_charge_Amt ELSE 0 END), 0) as takeaway_order_amount,
+            SUM(CASE WHEN bill_valid != 'X' AND Ord_Type = 'TA' THEN 1 ELSE 0 END) as takeaway_order_count,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' AND Ord_Type = 'TA' THEN No_Of_Pax ELSE 0 END), 0) as takeaway_order_guests,
 
-            (SELECT ISNULL(SUM(h.bill_amt - h.tax - h.Service_charge_Amt), 0) FROM bill_header h WHERE 1=1 AND h.bill_valid != 'X' AND h.Ord_Type = 'DE' ${locFilter} ${dateFilter}) as delivery_order_amount,
-            (SELECT COUNT(h.bill_no) FROM bill_header h WHERE 1=1 AND h.bill_valid != 'X' AND h.Ord_Type = 'DE' ${locFilter} ${dateFilter}) as delivery_order_count,
-            (SELECT ISNULL(SUM(h.No_Of_Pax), 0) FROM bill_header h WHERE 1=1 AND h.bill_valid != 'X' AND h.Ord_Type = 'DE' ${locFilter} ${dateFilter}) as delivery_order_guests,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' AND Ord_Type = 'DE' THEN bill_amt - tax - Service_charge_Amt ELSE 0 END), 0) as delivery_order_amount,
+            SUM(CASE WHEN bill_valid != 'X' AND Ord_Type = 'DE' THEN 1 ELSE 0 END) as delivery_order_count,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' AND Ord_Type = 'DE' THEN No_Of_Pax ELSE 0 END), 0) as delivery_order_guests,
 
-            (SELECT ISNULL(SUM(h.bill_amt - h.tax - h.Service_charge_Amt), 0) FROM bill_header h WHERE 1=1 AND h.bill_valid != 'X' AND h.Ord_Type = 'QS' ${locFilter} ${dateFilter}) as quick_service_order_amount,
-            (SELECT COUNT(h.bill_no) FROM bill_header h WHERE 1=1 AND h.bill_valid != 'X' AND h.Ord_Type = 'QS' ${locFilter} ${dateFilter}) as quick_service_order_count,
-            (SELECT ISNULL(SUM(h.No_Of_Pax), 0) FROM bill_header h WHERE 1=1 AND h.bill_valid != 'X' AND h.Ord_Type = 'QS' ${locFilter} ${dateFilter}) as quick_service_order_guests,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' AND Ord_Type = 'QS' THEN bill_amt - tax - Service_charge_Amt ELSE 0 END), 0) as quick_service_order_amount,
+            SUM(CASE WHEN bill_valid != 'X' AND Ord_Type = 'QS' THEN 1 ELSE 0 END) as quick_service_order_count,
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' AND Ord_Type = 'QS' THEN No_Of_Pax ELSE 0 END), 0) as quick_service_order_guests,
             
-            (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN tax ELSE 0 END), 0) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as total_tax,
-            (SELECT COUNT(DISTINCT CASE WHEN bill_valid != 'X' AND tax > 0 THEN bill_no END) FROM bill_header WHERE 1=1 ${locFilter} ${dateFilter}) as tax_count
+            ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN tax ELSE 0 END), 0) as total_tax,
+            SUM(CASE WHEN bill_valid != 'X' AND tax > 0 THEN 1 ELSE 0 END) as tax_count
+        FROM History_header h
+        WHERE 1=1 ${locFilter} ${dateFilter}
     `;
 
-    const result = await request.query(query);
-    return result.recordset[0];
+    const headerResult = await request.query(headerQuery);
+    const headerStats = headerResult.recordset[0] || {};
+
+    // Query 2: Get transaction-level stats grouped by type_code in a single scan
+    const tranQuery = `
+        SELECT 
+            t.type_code,
+            SUM(ABS(t.tran_amt2)) as total_amt2,
+            SUM(ABS(t.tran_qty)) as total_qty,
+            COUNT(DISTINCT t.bill_no) as bill_count,
+            SUM(CASE WHEN t.unit_price > 0 THEN ABS(t.tran_amt2) / t.unit_price ELSE 0 END) as void_qty_calculated
+        FROM History_tran t
+        INNER JOIN History_header h ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
+        WHERE h.bill_valid != 'X' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}
+        GROUP BY t.type_code
+    `;
+
+    const tranResult = await request.query(tranQuery);
+    const tranRows = tranResult.recordset || [];
+
+    // Helper to extract aggregates
+    const getTranStatsForTypes = (types) => {
+        const matching = tranRows.filter(r => types.includes(r.type_code));
+        return {
+            amount: matching.reduce((sum, r) => sum + (r.total_amt2 || 0), 0),
+            qty: matching.reduce((sum, r) => sum + (r.total_qty || 0), 0),
+            count: matching.reduce((sum, r) => sum + (r.bill_count || 0), 0),
+            voidQty: matching.reduce((sum, r) => sum + (r.void_qty_calculated || 0), 0)
+        };
+    };
+
+    const refund = getTranStatsForTypes(['R', 'RR']);
+    const voidStats = getTranStatsForTypes(['VV']);
+    const complimentary = getTranStatsForTypes(['CO']);
+    const staff = getTranStatsForTypes(['ST']);
+    const waste = getTranStatsForTypes(['WA']);
+    const credit = getTranStatsForTypes(['CS']);
+    const creditPay = getTranStatsForTypes(['CP']);
+
+    // Query 3: Specific scan for waste items count
+    const wasteItemsQuery = `
+        SELECT ISNULL(SUM(ABS(t.tran_qty)), 0) as waste_items_count
+        FROM History_tran t
+        INNER JOIN History_header h ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
+        WHERE h.bill_valid != 'X' 
+          AND (t.type_code = 'RS' OR t.tran_type = 'S') 
+          AND EXISTS (SELECT 1 FROM History_tran t2 WHERE t2.bill_no = h.bill_no AND t2.Loc_id = h.loc_id AND t2.mech_no = h.mech_no AND t2.bill_date = h.bill_date AND t2.type_code = 'WA')
+          ${locFilter.replace('loc_id', 'h.loc_id')} 
+          ${dateFilter.replace(/bill_date/g, 'h.bill_date')}
+    `;
+    const wasteItemsResult = await request.query(wasteItemsQuery);
+    const wasteItemsCount = wasteItemsResult.recordset[0]?.waste_items_count || 0;
+
+    return {
+        ...headerStats,
+        
+        refund_amount: refund.amount,
+        refund_items_count: refund.qty,
+        refund_count: refund.count,
+
+        void_amount: voidStats.amount,
+        void_items_count: voidStats.voidQty,
+        void_count: voidStats.count,
+
+        complimentary_amount: complimentary.amount,
+        complimentary_count: complimentary.count,
+
+        staff_amount: staff.amount,
+        staff_count: staff.count,
+
+        waste_amount: waste.amount,
+        waste_items_count: wasteItemsCount,
+        waste_count: waste.count,
+
+        credit_amount: credit.amount,
+        credit_count: credit.count,
+
+        credit_pay_amount: creditPay.amount,
+        credit_pay_count: creditPay.count
+    };
 };
 
 export const getHistorySalesTrend = async (startDate, endDate, locationId) => {
@@ -137,7 +211,7 @@ export const getHistorySalesTrend = async (startDate, endDate, locationId) => {
         SELECT 
             SUBSTRING(CONVERT(VARCHAR(10), bill_date, 101), 1, 5) as date,
             SUM(bill_amt) as revenue
-        FROM bill_header
+        FROM History_header
         WHERE bill_valid != 'X'
     `;
 
@@ -148,7 +222,7 @@ export const getHistorySalesTrend = async (startDate, endDate, locationId) => {
     }
 
     if (startDate && endDate) {
-        query += ` AND CAST(bill_date AS DATE) BETWEEN @startDate AND @endDate`;
+        query += ` AND bill_date >= @startDate AND bill_date < DATEADD(day, 1, @endDate)`;
         request.input('startDate', sql.Date, startDate);
         request.input('endDate', sql.Date, endDate);
     }
@@ -167,8 +241,8 @@ export const getHistoryTopItems = async (startDate, endDate, locationId) => {
         SELECT TOP 3
             t.tran_desc as name,
             SUM(t.tran_qty) as quantity
-        FROM bill_tran t
-        INNER JOIN bill_header h ON t.bill_no = h.bill_no
+        FROM History_tran t
+        INNER JOIN History_header h ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
         WHERE h.bill_valid != 'X' AND t.tran_type = 'S'
     `;
 
@@ -179,7 +253,7 @@ export const getHistoryTopItems = async (startDate, endDate, locationId) => {
     }
 
     if (startDate && endDate) {
-        query += ` AND CAST(h.bill_date AS DATE) BETWEEN @startDate AND @endDate`;
+        query += ` AND h.bill_date >= @startDate AND h.bill_date < DATEADD(day, 1, @endDate)`;
         request.input('startDate', sql.Date, startDate);
         request.input('endDate', sql.Date, endDate);
     }
@@ -202,8 +276,8 @@ export const getHistoryOrderTypes = async (startDate, endDate, locationId) => {
                 WHEN Ord_Type = 'DE' THEN 'Delivery'
                 WHEN Ord_Type = 'QS' THEN 'Quick Service'
             END as type,
-            COUNT(DISTINCT bill_no) as count
-        FROM bill_header
+            COUNT(*) as count
+        FROM History_header
         WHERE bill_valid != 'X' AND Ord_Type IN ('DE', 'QS', 'TO', 'TA')
     `;
 
@@ -214,7 +288,7 @@ export const getHistoryOrderTypes = async (startDate, endDate, locationId) => {
     }
 
     if (startDate && endDate) {
-        query += ` AND CAST(bill_date AS DATE) BETWEEN @startDate AND @endDate`;
+        query += ` AND bill_date >= @startDate AND bill_date < DATEADD(day, 1, @endDate)`;
         request.input('startDate', sql.Date, startDate);
         request.input('endDate', sql.Date, endDate);
     }
@@ -236,8 +310,8 @@ export const getHistoryPaymentMethods = async (startDate, endDate, locationId) =
                 WHEN type_code = 'CC' THEN 'Card'
             END as name,
             COUNT(*) as value
-        FROM bill_tran t
-        INNER JOIN bill_header h ON t.bill_no = h.bill_no
+        FROM History_tran t
+        INNER JOIN History_header h ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
         WHERE h.bill_valid != 'X'
           AND t.type_code IN ('MM', 'CC')
     `;
@@ -249,7 +323,7 @@ export const getHistoryPaymentMethods = async (startDate, endDate, locationId) =
     }
 
     if (startDate && endDate) {
-        query += ` AND CAST(h.bill_date AS DATE) BETWEEN @startDate AND @endDate`;
+        query += ` AND h.bill_date >= @startDate AND h.bill_date < DATEADD(day, 1, @endDate)`;
         request.input('startDate', sql.Date, startDate);
         request.input('endDate', sql.Date, endDate);
     }
@@ -260,11 +334,84 @@ export const getHistoryPaymentMethods = async (startDate, endDate, locationId) =
     return result.recordset;
 };
 
+export const getHistoryCollections = async (startDate, endDate, locationId) => {
+    const pool = await getConnection();
+    const request = pool.request();
+
+    let locFilter = "";
+    if (locationId && String(locationId).trim() !== '000') {
+        const trimmedLocId = String(locationId).trim();
+        locFilter = ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
+        request.input('locationId', sql.VarChar, trimmedLocId);
+    }
+
+    let dateFilter = "";
+    if (startDate && endDate) {
+        dateFilter = ` AND h.bill_date >= @startDate AND h.bill_date < DATEADD(day, 1, @endDate)`;
+        request.input('startDate', sql.Date, startDate);
+        request.input('endDate', sql.Date, endDate);
+    } else if (startDate) {
+        dateFilter = ` AND h.bill_date >= @startDate`;
+        request.input('startDate', sql.Date, startDate);
+    } else if (endDate) {
+        dateFilter = ` AND h.bill_date < DATEADD(day, 1, @endDate)`;
+        request.input('endDate', sql.Date, endDate);
+    }
+
+    const query = `
+        SELECT 
+            t.type_code,
+            t.key_code,
+            cc.cc_name,
+            SUM(ABS(t.tran_amt2)) as total_amount,
+            SUM(ABS(t.tran_qty)) as total_qty,
+            COUNT(DISTINCT t.bill_no) as bill_count
+        FROM History_tran t
+        INNER JOIN History_header h ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
+        LEFT JOIN cc_mast cc ON LTRIM(RTRIM(t.key_code)) = LTRIM(RTRIM(cc.cc_no)) AND t.type_code = 'CC'
+        WHERE h.bill_valid != 'X' 
+          AND t.type_code IN ('MM', 'CC', 'CS', 'CP', 'CO', 'ST', 'WA', 'R', 'RR', 'VV')
+          ${locFilter}
+          ${dateFilter}
+        GROUP BY t.type_code, t.key_code, cc.cc_name
+    `;
+
+    const result = await request.query(query);
+    const rows = result.recordset || [];
+
+    // Format and group them nicely
+    const collections = rows.map(row => {
+        let name = 'Other';
+        if (row.type_code === 'MM') name = 'Cash';
+        else if (row.type_code === 'CC') name = row.cc_name || 'Card Pay';
+        else if (row.type_code === 'CS') name = 'Credit';
+        else if (row.type_code === 'CP') name = 'Credit paid';
+        else if (row.type_code === 'CO') name = 'Complementary';
+        else if (row.type_code === 'ST') name = 'Staff';
+        else if (row.type_code === 'WA') name = 'Wastage';
+        else if (row.type_code === 'VV') name = 'Void';
+        else if (row.type_code === 'R' || row.type_code === 'RR') name = 'Refund';
+
+        return {
+            typeCode: row.type_code,
+            keyCode: row.key_code || '',
+            name,
+            amount: row.total_amount || 0,
+            qty: row.total_qty || 0,
+            billCount: row.bill_count || 0
+        };
+    });
+
+    return collections;
+};
+
 export default {
     getHistory,
     getHistoryStats,
     getHistorySalesTrend,
     getHistoryTopItems,
     getHistoryOrderTypes,
-    getHistoryPaymentMethods
+    getHistoryPaymentMethods,
+    getHistoryCollections
 };
+

@@ -1,4 +1,4 @@
-﻿export const translations = {
+export const translations = {
     en: {
         navbar: {
             search: "Search transactions...",
@@ -184,6 +184,8 @@
         charts: {
             sales24h: "24-Hour Sales Trend",
             salesWeekly: "Weekly Sales Trend",
+            salesMonthly: "Monthly Sales Trend",
+            salesYearly: "Yearly Sales Trend",
             topItems: "Top 3 Selling Items",
             orderTypeToday: "Today Order Type",
             orderTypeHistory: "Historical Order Types",
@@ -191,27 +193,21 @@
             paymentHistory: "Historical Payment Methods"
         },
         history: {
-            title: "Detailed Transaction Log",
+            title: "Collections Summary",
             subtitle: "Filtered by Date Range",
-            txnId: "Transaction ID",
-            dateTime: "Date & Time",
-            orderDetails: "Order Details",
-            amount: "Amount (LKR)",
-            type: "Type",
-            status: "Status",
-            completed: "Completed",
-            cancelled: "Cancelled",
-            refunded: "Refunded",
-            dineIn: "Dine-in",
-            delivery: "Delivery",
-            takeaway: "Takeaway",
+            colMethod: "Payment Method",
+            colCount: "Transaction Count",
+            colAmount: "Total Amount (LKR)",
+            total: "Total",
             showing: "Showing {start} to {end} of {total} transactions",
             previous: "Previous",
             next: "Next",
-            export: "Export CSV",
             quickWeek: "Last Week",
             quickMonth: "Last Month",
-            quickYear: "Last Year"
+            quickYear: "Last Year",
+            refresh: "Filter",
+            refreshing: "Filtering...",
+            hideEmpty: "Hide Empty Cards"
         },
         footer: {
             rights: "© 2026 Danu Dashboard",
@@ -418,6 +414,8 @@
         charts: {
             sales24h: "පැය 24ක විකුණුම් ප්‍රවණතාව",
             salesWeekly: "සතිපතා විකුණුම් ප්‍රවණතාව",
+            salesMonthly: "මාසික විකුණුම් ප්‍රවණතාව",
+            salesYearly: "වාර්ෂික විකුණුම් ප්‍රවණතාව",
             topItems: "වැඩිපුරම අලෙවි වන අයිතම 3",
             orderTypeToday: "අද ඇණවුම් වර්ගය",
             orderTypeHistory: "ඓතිහාසික ඇණවුම් වර්ග",
@@ -425,27 +423,21 @@
             paymentHistory: "ඓතිහාසික ගෙවීම් ක්‍රම"
         },
         history: {
-            title: "සවිස්තරාත්මක ගනුදෙනු ලොගය",
+            title: "එකතු කිරීම් සාරාංශය",
             subtitle: "දිනය අනුව පෙරන ලද",
-            txnId: "ගනුදෙනු අංකය",
-            dateTime: "දිනය සහ වේලාව",
-            orderDetails: "ඇණවුම් විස්තර",
-            amount: "වටිනාකම (LKR)",
-            type: "වර්ගය",
-            status: "තත්ත්වය",
-            completed: "සම්පූර්ණයි",
-            cancelled: "අවලංගුයි",
-            refunded: "ප්‍රතිපූරණය කරන ලදී",
-            dineIn: "ආපනශාලාවේ",
-            delivery: "බෙදා හැරීම",
-            takeaway: "රැගෙන යාම",
+            colMethod: "ගෙවීම් ක්‍රමය",
+            colCount: "ගනුදෙනු ගණන",
+            colAmount: "මුළු මුදල (LKR)",
+            total: "එකතුව",
             showing: "ගනුදෙනු {total} කින් {start} සිට {end} දක්වා පෙන්වයි",
             previous: "පෙර",
             next: "මීළඟ",
-            export: "CSV අපනයනය",
             quickWeek: "පසුගිය සතිය",
             quickMonth: "පසුගිය මාසය",
-            quickYear: "පසුගිය වසර"
+            quickYear: "පසුගිය වසර",
+            refresh: "පෙරහන් කරන්න",
+            refreshing: "පෙරහන් වෙමින්...",
+            hideEmpty: "හිස් කාඩ්පත් සඟවන්න"
         },
         footer: {
             rights: "© 2026 Danu Dashboard",

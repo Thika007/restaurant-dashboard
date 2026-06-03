@@ -1,7 +1,7 @@
 import React from 'react';
 import { Bell, LogOut, Search, User, Languages, LayoutDashboard, History, Maximize, Minimize, FileBarChart, MapPin } from 'lucide-react';
 
-const Navbar = ({ lang, setLang, t, activeTab, setActiveTab, tTabs, locations, selectedLocation, setSelectedLocation }) => {
+const Navbar = ({ lang, setLang, t, activeTab, setActiveTab, tTabs, locations, selectedLocation, setSelectedLocation, showNavbar }) => {
     const [isFullscreen, setIsFullscreen] = React.useState(false);
     const userString = localStorage.getItem('user');
     const user = userString ? JSON.parse(userString) : null;
@@ -32,7 +32,8 @@ const Navbar = ({ lang, setLang, t, activeTab, setActiveTab, tTabs, locations, s
     };
 
     return (
-        <nav className="sticky top-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-slate-200">
+        <div className="h-14 sm:h-[72px]">
+            <nav className={`fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 bg-white border-b border-slate-200 transition-transform duration-300 ${showNavbar ? 'translate-y-0' : '-translate-y-full'}`}>
             <div className="flex items-center gap-2 sm:gap-4">
                 <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-dashboard-blue text-white font-black text-lg sm:text-xl shadow-lg shadow-blue-200">
                     D
@@ -135,6 +136,7 @@ const Navbar = ({ lang, setLang, t, activeTab, setActiveTab, tTabs, locations, s
                 </div>
             </div>
         </nav>
+        </div>
     );
 };
 

@@ -28,8 +28,13 @@ const orderTypeData = [
     { name: 'Delivery', value: 138, color: '#10b981' },
 ];
 
-const Charts = ({ isHistory, t, chartsData }) => {
+const Charts = ({ isHistory, t, chartsData, startDate, endDate }) => {
     const { trend, topItems, orderTypes, paymentMethods } = chartsData || { trend: [], topItems: [], orderTypes: [], paymentMethods: [] };
+    const [isMounted, setIsMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // Set colors for consistent assignment
     const colorPalette = ['#1e3a8a', '#10b981', '#f59e0b', '#6366f1', '#ec4899', '#14b8a6'];
@@ -55,7 +60,25 @@ const Charts = ({ isHistory, t, chartsData }) => {
 
     const displaySalesData = salesTrendData;
 
-    const salesTitle = isHistory ? t.salesWeekly : t.sales24h;
+    const getSalesTrendTitle = () => {
+        if (!isHistory) return t.sales24h;
+        if (!startDate || !endDate) return t.salesWeekly;
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const diffTime = Math.abs(end - start);
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays <= 7) {
+            return t.salesWeekly;
+        } else if (diffDays <= 31) {
+            return t.salesMonthly;
+        } else {
+            return t.salesYearly;
+        }
+    };
+
+    const salesTitle = getSalesTrendTitle();
     const dataKey = isHistory ? 'time' : 'time'; // Still using time/day for XAxis
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-8">
@@ -63,24 +86,26 @@ const Charts = ({ isHistory, t, chartsData }) => {
             <div className="glass-card p-4 sm:p-6 min-h-[350px] sm:min-h-[400px]">
                 <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-4 sm:mb-6">{salesTitle}</h3>
                 <div className="h-[250px] sm:h-[300px] w-full min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={displaySalesData}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="time" />
-                            <YAxis />
-                            <Tooltip
-                                contentStyle={{ backgroundColor: 'white', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                            />
-                            <Line
-                                type="monotone"
-                                dataKey="sales"
-                                stroke="#1e3a8a"
-                                strokeWidth={3}
-                                dot={{ r: 4, fill: '#1e3a8a' }}
-                                activeDot={{ r: 6, strokeWidth: 0 }}
-                            />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    {isMounted && (
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                            <LineChart data={displaySalesData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="time" />
+                                <YAxis />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: 'white', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                />
+                                <Line
+                                    type="monotone"
+                                    dataKey="sales"
+                                    stroke="#1e3a8a"
+                                    strokeWidth={3}
+                                    dot={{ r: 4, fill: '#1e3a8a' }}
+                                    activeDot={{ r: 6, strokeWidth: 0 }}
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    )}
                 </div>
             </div>
 
@@ -88,19 +113,21 @@ const Charts = ({ isHistory, t, chartsData }) => {
             <div className="glass-card p-4 sm:p-6 min-h-[350px] sm:min-h-[400px]">
                 <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-4 sm:mb-6">{t.topItems}</h3>
                 <div className="h-[250px] sm:h-[300px] w-full min-w-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={topItems} layout="vertical" margin={{ left: 40 }}>
-                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                            <XAxis type="number" />
-                            <YAxis dataKey="name" type="category" width={100} />
-                            <Tooltip />
-                            <Bar dataKey="quantity" fill="#1e3a8a" radius={[0, 4, 4, 0]}>
-                                {topItems.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#1e3a8a' : index === 1 ? '#10b981' : '#6366f1'} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+                    {isMounted && (
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                            <BarChart data={topItems} layout="vertical" margin={{ left: 40 }}>
+                                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                                <XAxis type="number" />
+                                <YAxis dataKey="name" type="category" width={100} />
+                                <Tooltip />
+                                <Bar dataKey="quantity" fill="#1e3a8a" radius={[0, 4, 4, 0]}>
+                                    {topItems.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={index === 0 ? '#1e3a8a' : index === 1 ? '#10b981' : '#6366f1'} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    )}
                 </div>
             </div>
 
@@ -108,25 +135,27 @@ const Charts = ({ isHistory, t, chartsData }) => {
             <div className="glass-card p-4 sm:p-6 min-h-[300px] sm:min-h-[350px]">
                 <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-4 sm:mb-6">{isHistory ? t.orderTypeHistory : t.orderTypeToday}</h3>
                 <div className="h-[200px] sm:h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie
-                                data={orderTypeChartData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="value"
-                            >
-                                {orderTypeChartData.map((entry, index) => (
-                                    <PieCell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend verticalAlign="bottom" height={36} />
-                        </PieChart>
-                    </ResponsiveContainer>
+                    {isMounted && (
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                            <PieChart>
+                                <Pie
+                                    data={orderTypeChartData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    {orderTypeChartData.map((entry, index) => (
+                                        <PieCell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                                <Legend verticalAlign="bottom" height={36} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    )}
                 </div>
             </div>
 
@@ -134,25 +163,27 @@ const Charts = ({ isHistory, t, chartsData }) => {
             <div className="glass-card p-4 sm:p-6 min-h-[300px] sm:min-h-[350px]">
                 <h3 className="text-base sm:text-lg font-bold text-slate-800 mb-4 sm:mb-6">{isHistory ? t.paymentHistory : t.paymentToday}</h3>
                 <div className="h-[200px] sm:h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                            <Pie
-                                data={paymentMethodChartData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
-                                dataKey="value"
-                            >
-                                {paymentMethodChartData.map((entry, index) => (
-                                    <PieCell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend verticalAlign="bottom" height={36} />
-                        </PieChart>
-                    </ResponsiveContainer>
+                    {isMounted && (
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                            <PieChart>
+                                <Pie
+                                    data={paymentMethodChartData}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    {paymentMethodChartData.map((entry, index) => (
+                                        <PieCell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                                <Legend verticalAlign="bottom" height={36} />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    )}
                 </div>
             </div>
         </div>

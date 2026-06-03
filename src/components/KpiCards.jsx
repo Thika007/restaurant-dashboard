@@ -43,7 +43,7 @@ const DetailedKpiCard = ({ title, metrics, icon: Icon, color, lang }) => (
     </div>
 );
 
-const KpiCards = ({ isHistory, t, stats, lang, orderTypeLabels }) => {
+const KpiCards = ({ isHistory, t, stats, lang, orderTypeLabels, hideEmpty }) => {
     const billsSuffix = lang === 'si' ? 'බිල්පත්' : 'Bills';
     const ratioSuffix = lang === 'si' ? 'අනුපාතය' : 'RATIO';
 
@@ -51,6 +51,38 @@ const KpiCards = ({ isHistory, t, stats, lang, orderTypeLabels }) => {
         if (!stats?.net_revenue || !amount) return "";
         const ratio = (amount / stats.net_revenue) * 100;
         return ` | ${ratio.toFixed(2)}% ${ratioSuffix}`;
+    };
+
+    const filterKpis = (kpis) => {
+        if (!hideEmpty) return kpis;
+        return kpis.filter(kpi => {
+            const cleanValStr = String(kpi.value).replace(/[^0-9.-]/g, '');
+            const numVal = parseFloat(cleanValStr);
+            return !isNaN(numVal) && numVal !== 0;
+        });
+    };
+
+    const getGridClass = (count, defaultCols) => {
+        if (count === 0) return "hidden";
+        if (defaultCols === 5) {
+            if (count === 5) return "grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6";
+            if (count === 4) return "grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6";
+            if (count === 3) return "grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6";
+            if (count === 2) return "grid grid-cols-2 gap-3 sm:gap-6";
+            return "grid grid-cols-1 gap-3 sm:gap-6";
+        }
+        if (defaultCols === 4) {
+            if (count === 4) return "grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6";
+            if (count === 3) return "grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6";
+            if (count === 2) return "grid grid-cols-2 gap-3 sm:gap-6";
+            return "grid grid-cols-1 gap-3 sm:gap-6";
+        }
+        if (defaultCols === 3) {
+            if (count === 3) return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6";
+            if (count === 2) return "grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6";
+            return "grid grid-cols-1 gap-3 sm:gap-6";
+        }
+        return "grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8";
     };
 
     // Large Top Row Metrics
@@ -214,52 +246,101 @@ const KpiCards = ({ isHistory, t, stats, lang, orderTypeLabels }) => {
         }
     ];
 
+    const isKpiEmpty = (kpi) => {
+        const cleanValStr = String(kpi.value).replace(/[^0-9.-]/g, '');
+        const numVal = parseFloat(cleanValStr);
+        return !isNaN(numVal) && numVal === 0;
+    };
+
+    const isOrderTypeEmpty = (ot) => {
+        return ot.amount === 0 && ot.count === 0 && ot.guests === 0;
+    };
+
     return (
         <div className="space-y-4 sm:space-y-6 mb-8">
-            {/* Top Row - Financials (5 Columns) */}
-            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
-                {topRowKpis.map((kpi, index) => (
-                    <KpiCard key={`top-${index}`} {...kpi} lang={lang} />
-                ))}
+            {/* Top Row - Financials */}
+            <div className="flex flex-wrap gap-3 sm:gap-6">
+                {topRowKpis.map((kpi, index) => {
+                    const isHidden = hideEmpty && isKpiEmpty(kpi);
+                    return (
+                        <div
+                            key={`top-${index}`}
+                            className={`kpi-flex-5 kpi-card-anim ${isHidden ? 'kpi-card-hidden' : 'kpi-card-visible'}`}
+                        >
+                            <KpiCard {...kpi} lang={lang} />
+                        </div>
+                    );
+                })}
             </div>
 
-            {/* Middle Row - Activity (4 Columns) */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                {middleRowKpis.map((kpi, index) => (
-                    <KpiCard key={`middle-${index}`} {...kpi} lang={lang} />
-                ))}
+            {/* Middle Row - Activity */}
+            <div className="flex flex-wrap gap-3 sm:gap-6">
+                {middleRowKpis.map((kpi, index) => {
+                    const isHidden = hideEmpty && isKpiEmpty(kpi);
+                    return (
+                        <div
+                            key={`middle-${index}`}
+                            className={`kpi-flex-4 kpi-card-anim ${isHidden ? 'kpi-card-hidden' : 'kpi-card-visible'}`}
+                        >
+                            <KpiCard {...kpi} lang={lang} />
+                        </div>
+                    );
+                })}
             </div>
 
-            {/* Bottom Row - More Details (4 Columns) */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                {bottomRowKpis.map((kpi, index) => (
-                    <KpiCard key={`bottom-${index}`} {...kpi} lang={lang} />
-                ))}
+            {/* Bottom Row - More Details */}
+            <div className="flex flex-wrap gap-3 sm:gap-6">
+                {bottomRowKpis.map((kpi, index) => {
+                    const isHidden = hideEmpty && isKpiEmpty(kpi);
+                    return (
+                        <div
+                            key={`bottom-${index}`}
+                            className={`kpi-flex-4 kpi-card-anim ${isHidden ? 'kpi-card-hidden' : 'kpi-card-visible'}`}
+                        >
+                            <KpiCard {...kpi} lang={lang} />
+                        </div>
+                    );
+                })}
             </div>
 
-            {/* Credit Row - Specific tracking (3 Columns) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-                {creditRowKpis.map((kpi, index) => (
-                    <KpiCard key={`credit-${index}`} {...kpi} lang={lang} />
-                ))}
+            {/* Credit Row - Specific tracking */}
+            <div className="flex flex-wrap gap-3 sm:gap-6">
+                {creditRowKpis.map((kpi, index) => {
+                    const isHidden = hideEmpty && isKpiEmpty(kpi);
+                    return (
+                        <div
+                            key={`credit-${index}`}
+                            className={`kpi-flex-3 kpi-card-anim ${isHidden ? 'kpi-card-hidden' : 'kpi-card-visible'}`}
+                        >
+                            <KpiCard {...kpi} lang={lang} />
+                        </div>
+                    );
+                })}
             </div>
 
-            {/* Order Type Detailed Row - 2 Rows of 2 Columns */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
-                {orderTypes.map((ot, idx) => (
-                    <DetailedKpiCard
-                        key={idx}
-                        title={ot.title}
-                        icon={ot.icon}
-                        lang={lang}
-                        metrics={[
-                            { label: t.txnAmount, value: ot.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-                            { label: t.txnCount, value: ot.count.toLocaleString() },
-                            { label: t.guestTotal, value: ot.guests.toLocaleString() },
-                            { label: t.app, value: ot.guests > 0 ? (ot.amount / ot.guests).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00' }
-                        ]}
-                    />
-                ))}
+            {/* Order Type Detailed Row */}
+            <div className="flex flex-wrap gap-4 sm:gap-8">
+                {orderTypes.map((ot, idx) => {
+                    const isHidden = hideEmpty && isOrderTypeEmpty(ot);
+                    return (
+                        <div
+                            key={idx}
+                            className={`kpi-flex-2 kpi-card-anim ${isHidden ? 'kpi-card-hidden' : 'kpi-card-visible'}`}
+                        >
+                            <DetailedKpiCard
+                                title={ot.title}
+                                icon={ot.icon}
+                                lang={lang}
+                                metrics={[
+                                    { label: t.txnAmount, value: ot.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+                                    { label: t.txnCount, value: ot.count.toLocaleString() },
+                                    { label: t.guestTotal, value: ot.guests.toLocaleString() },
+                                    { label: t.app, value: ot.guests > 0 ? (ot.amount / ot.guests).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00' }
+                                ]}
+                            />
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

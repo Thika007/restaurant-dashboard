@@ -2,7 +2,7 @@ import reportService from '../services/reportService.js';
 
 export const getBillReport = async (req, res) => {
     try {
-        const { startDate, endDate, txnType, orderType, sort } = req.query;
+        const { startDate, endDate, txnType, orderType, sort, page, pageSize } = req.query;
 
         const isAdmin = req.user.supervisor === 'Y' || req.user.alowmaster === 'Y';
         const locationId = (isAdmin && req.query.locationId) ? req.query.locationId : req.user.locationId;
@@ -14,7 +14,10 @@ export const getBillReport = async (req, res) => {
             locationId
         };
 
-        const result = await reportService.getBillReport(startDate, endDate, filters);
+        const pageNum = parseInt(page, 10) || 1;
+        const pageSizeNum = parseInt(pageSize, 10) || 50;
+
+        const result = await reportService.getBillReport(startDate, endDate, filters, pageNum, pageSizeNum);
         res.json(result);
     } catch (error) {
         console.error("Error fetching bill report:", error);
@@ -24,7 +27,7 @@ export const getBillReport = async (req, res) => {
 
 export const getItemReport = async (req, res) => {
     try {
-        const { startDate, endDate, txnType, orderType, categories, subCategories, itemName, descSort, qtySort, amtSort } = req.query;
+        const { startDate, endDate, txnType, orderType, categories, subCategories, itemName, descSort, qtySort, amtSort, page, pageSize } = req.query;
 
         const isAdmin = req.user.supervisor === 'Y' || req.user.alowmaster === 'Y';
         const locationId = (isAdmin && req.query.locationId) ? req.query.locationId : req.user.locationId;
@@ -41,7 +44,10 @@ export const getItemReport = async (req, res) => {
             locationId
         };
 
-        const result = await reportService.getItemReport(startDate, endDate, filters);
+        const pageNum = parseInt(page, 10) || 1;
+        const pageSizeNum = parseInt(pageSize, 10) || 50;
+
+        const result = await reportService.getItemReport(startDate, endDate, filters, pageNum, pageSizeNum);
         res.json(result);
     } catch (error) {
         console.error("Error fetching item report:", error);
