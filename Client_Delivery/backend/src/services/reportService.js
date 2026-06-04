@@ -79,7 +79,7 @@ export const getBillReport = async (startDate, endDate, filters = {}, page = 1, 
 
     if (filters.locationId && String(filters.locationId).trim() !== '000') {
         const trimmedLocId = String(filters.locationId).trim();
-        query += ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
+        query += ` AND h.loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 
@@ -237,7 +237,7 @@ export const getItemReport = async (startDate, endDate, filters = {}, page = 1, 
 
     if (filters.locationId && String(filters.locationId).trim() !== '000') {
         const trimmedLocId = String(filters.locationId).trim();
-        query += ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
+        query += ` AND h.loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 

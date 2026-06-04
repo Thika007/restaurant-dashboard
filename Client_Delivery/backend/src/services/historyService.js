@@ -9,7 +9,7 @@ export const getHistory = async (startDate, endDate, locationId, page = 1, pageS
 
     if (locationId && String(locationId).trim() !== '000') {
         const trimmedLocId = String(locationId).trim();
-        whereClause += ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
+        whereClause += ` AND h.loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 
@@ -28,8 +28,8 @@ export const getHistory = async (startDate, endDate, locationId, page = 1, pageS
     // Get total count
     const countQuery = `
         SELECT COUNT(*) as total
-        FROM History_header h
-        INNER JOIN History_tran t ON h.bill_no = t.bill_no
+        FROM History_header h WITH (NOLOCK)
+        INNER JOIN History_tran t WITH (NOLOCK) ON h.bill_no = t.bill_no AND h.loc_id = t.Loc_id AND h.mech_no = t.mech_no AND h.bill_date = t.bill_date
         ${whereClause}
     `;
     const countResult = await request.query(countQuery);
@@ -48,8 +48,8 @@ export const getHistory = async (startDate, endDate, locationId, page = 1, pageS
             t.unit_price as UnitPrice, 
             t.tran_amt as LineTotal, 
             h.bill_date as TransDate
-        FROM History_header h
-        INNER JOIN History_tran t ON h.bill_no = t.bill_no
+        FROM History_header h WITH (NOLOCK)
+        INNER JOIN History_tran t WITH (NOLOCK) ON h.bill_no = t.bill_no AND h.loc_id = t.Loc_id AND h.mech_no = t.mech_no AND h.bill_date = t.bill_date
         ${whereClause}
         ORDER BY h.bill_date DESC
         OFFSET @offset ROWS
@@ -62,29 +62,35 @@ export const getHistory = async (startDate, endDate, locationId, page = 1, pageS
 
 export const getHistoryStats = async (startDate, endDate, locationId) => {
     const pool = await getConnection();
-    const request = pool.request();
 
-    let locFilter = "";
-    if (locationId && String(locationId).trim() !== '000') {
-        const trimmedLocId = String(locationId).trim();
-        locFilter = ` AND LTRIM(RTRIM(loc_id)) = @locationId`;
-        request.input('locationId', sql.VarChar, trimmedLocId);
-    }
+    // Build filter strings for both header-only and joined queries
+    const trimmedLocId = (locationId && String(locationId).trim() !== '000') ? String(locationId).trim() : null;
 
-    let dateFilter = "";
+    const headerLocFilter = trimmedLocId ? ` AND loc_id = @locationId` : '';
+    const joinedLocFilter = trimmedLocId ? ` AND h.loc_id = @locationId` : '';
+
+    let headerDateFilter = '';
+    let joinedDateFilter = '';
     if (startDate && endDate) {
-        dateFilter = ` AND bill_date >= @startDate AND bill_date < DATEADD(day, 1, @endDate)`;
-        request.input('startDate', sql.Date, startDate);
-        request.input('endDate', sql.Date, endDate);
+        headerDateFilter = ` AND bill_date >= @startDate AND bill_date < DATEADD(day, 1, @endDate)`;
+        joinedDateFilter = ` AND h.bill_date >= @startDate AND h.bill_date < DATEADD(day, 1, @endDate)`;
     } else if (startDate) {
-        dateFilter = ` AND bill_date >= @startDate`;
-        request.input('startDate', sql.Date, startDate);
+        headerDateFilter = ` AND bill_date >= @startDate`;
+        joinedDateFilter = ` AND h.bill_date >= @startDate`;
     } else if (endDate) {
-        dateFilter = ` AND bill_date < DATEADD(day, 1, @endDate)`;
-        request.input('endDate', sql.Date, endDate);
+        headerDateFilter = ` AND bill_date < DATEADD(day, 1, @endDate)`;
+        joinedDateFilter = ` AND h.bill_date < DATEADD(day, 1, @endDate)`;
     }
 
-    // Query 1: Get all Header level stats in a single pass (avoiding 18 nested scans)
+    // Helper to bind common parameters to a fresh request
+    const bindParams = (request) => {
+        if (trimmedLocId) request.input('locationId', sql.VarChar, trimmedLocId);
+        if (startDate) request.input('startDate', sql.Date, startDate);
+        if (endDate) request.input('endDate', sql.Date, endDate);
+        return request;
+    };
+
+    // Query 1: Header-level stats in a single pass
     const headerQuery = `
         SELECT 
             ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN bill_amt ELSE 0 END), 0) as total_revenue,
@@ -117,14 +123,11 @@ export const getHistoryStats = async (startDate, endDate, locationId) => {
             
             ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN tax ELSE 0 END), 0) as total_tax,
             SUM(CASE WHEN bill_valid != 'X' AND tax > 0 THEN 1 ELSE 0 END) as tax_count
-        FROM History_header h
-        WHERE 1=1 ${locFilter} ${dateFilter}
+        FROM History_header WITH (NOLOCK)
+        WHERE 1=1 ${headerLocFilter} ${headerDateFilter}
     `;
 
-    const headerResult = await request.query(headerQuery);
-    const headerStats = headerResult.recordset[0] || {};
-
-    // Query 2: Get transaction-level stats grouped by type_code in a single scan
+    // Query 2: Transaction-level stats grouped by type_code — includes waste items count
     const tranQuery = `
         SELECT 
             t.type_code,
@@ -132,14 +135,38 @@ export const getHistoryStats = async (startDate, endDate, locationId) => {
             SUM(ABS(t.tran_qty)) as total_qty,
             COUNT(DISTINCT t.bill_no) as bill_count,
             SUM(CASE WHEN t.unit_price > 0 THEN ABS(t.tran_amt2) / t.unit_price ELSE 0 END) as void_qty_calculated
-        FROM History_tran t
-        INNER JOIN History_header h ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
-        WHERE h.bill_valid != 'X' ${locFilter.replace('loc_id', 'h.loc_id')} ${dateFilter.replace(/bill_date/g, 'h.bill_date')}
+        FROM History_tran t WITH (NOLOCK)
+        INNER JOIN History_header h WITH (NOLOCK) ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
+        WHERE h.bill_valid != 'X' ${joinedLocFilter} ${joinedDateFilter}
         GROUP BY t.type_code
     `;
 
-    const tranResult = await request.query(tranQuery);
+    // Query 3: Waste items count — use JOIN instead of correlated EXISTS for better performance
+    const wasteItemsQuery = `
+        SELECT ISNULL(SUM(ABS(t.tran_qty)), 0) as waste_items_count
+        FROM History_tran t WITH (NOLOCK)
+        INNER JOIN History_header h WITH (NOLOCK) ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
+        INNER JOIN (
+            SELECT DISTINCT bill_no, Loc_id, mech_no, bill_date 
+            FROM History_tran WITH (NOLOCK) 
+            WHERE type_code = 'WA'
+        ) w ON w.bill_no = t.bill_no AND w.Loc_id = t.Loc_id AND w.mech_no = t.mech_no AND w.bill_date = t.bill_date
+        WHERE h.bill_valid != 'X' 
+          AND (t.type_code = 'RS' OR t.tran_type = 'S')
+          ${joinedLocFilter} 
+          ${joinedDateFilter}
+    `;
+
+    // Run all 3 queries IN PARALLEL using separate request objects
+    const [headerResult, tranResult, wasteItemsResult] = await Promise.all([
+        bindParams(pool.request()).query(headerQuery),
+        bindParams(pool.request()).query(tranQuery),
+        bindParams(pool.request()).query(wasteItemsQuery)
+    ]);
+
+    const headerStats = headerResult.recordset[0] || {};
     const tranRows = tranResult.recordset || [];
+    const wasteItemsCount = wasteItemsResult.recordset[0]?.waste_items_count || 0;
 
     // Helper to extract aggregates
     const getTranStatsForTypes = (types) => {
@@ -159,20 +186,6 @@ export const getHistoryStats = async (startDate, endDate, locationId) => {
     const waste = getTranStatsForTypes(['WA']);
     const credit = getTranStatsForTypes(['CS']);
     const creditPay = getTranStatsForTypes(['CP']);
-
-    // Query 3: Specific scan for waste items count
-    const wasteItemsQuery = `
-        SELECT ISNULL(SUM(ABS(t.tran_qty)), 0) as waste_items_count
-        FROM History_tran t
-        INNER JOIN History_header h ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
-        WHERE h.bill_valid != 'X' 
-          AND (t.type_code = 'RS' OR t.tran_type = 'S') 
-          AND EXISTS (SELECT 1 FROM History_tran t2 WHERE t2.bill_no = h.bill_no AND t2.Loc_id = h.loc_id AND t2.mech_no = h.mech_no AND t2.bill_date = h.bill_date AND t2.type_code = 'WA')
-          ${locFilter.replace('loc_id', 'h.loc_id')} 
-          ${dateFilter.replace(/bill_date/g, 'h.bill_date')}
-    `;
-    const wasteItemsResult = await request.query(wasteItemsQuery);
-    const wasteItemsCount = wasteItemsResult.recordset[0]?.waste_items_count || 0;
 
     return {
         ...headerStats,
@@ -203,6 +216,7 @@ export const getHistoryStats = async (startDate, endDate, locationId) => {
     };
 };
 
+
 export const getHistorySalesTrend = async (startDate, endDate, locationId) => {
     const pool = await getConnection();
     const request = pool.request();
@@ -211,13 +225,13 @@ export const getHistorySalesTrend = async (startDate, endDate, locationId) => {
         SELECT 
             SUBSTRING(CONVERT(VARCHAR(10), bill_date, 101), 1, 5) as date,
             SUM(bill_amt) as revenue
-        FROM History_header
+        FROM History_header WITH (NOLOCK)
         WHERE bill_valid != 'X'
     `;
 
     if (locationId && String(locationId).trim() !== '000') {
         const trimmedLocId = String(locationId).trim();
-        query += ` AND LTRIM(RTRIM(loc_id)) = @locationId`;
+        query += ` AND loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 
@@ -241,14 +255,14 @@ export const getHistoryTopItems = async (startDate, endDate, locationId) => {
         SELECT TOP 3
             t.tran_desc as name,
             SUM(t.tran_qty) as quantity
-        FROM History_tran t
-        INNER JOIN History_header h ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
+        FROM History_tran t WITH (NOLOCK)
+        INNER JOIN History_header h WITH (NOLOCK) ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
         WHERE h.bill_valid != 'X' AND t.tran_type = 'S'
     `;
 
     if (locationId && String(locationId).trim() !== '000') {
         const trimmedLocId = String(locationId).trim();
-        query += ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
+        query += ` AND h.loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 
@@ -277,13 +291,13 @@ export const getHistoryOrderTypes = async (startDate, endDate, locationId) => {
                 WHEN Ord_Type = 'QS' THEN 'Quick Service'
             END as type,
             COUNT(*) as count
-        FROM History_header
+        FROM History_header WITH (NOLOCK)
         WHERE bill_valid != 'X' AND Ord_Type IN ('DE', 'QS', 'TO', 'TA')
     `;
 
     if (locationId && String(locationId).trim() !== '000') {
         const trimmedLocId = String(locationId).trim();
-        query += ` AND LTRIM(RTRIM(loc_id)) = @locationId`;
+        query += ` AND loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 
@@ -310,15 +324,15 @@ export const getHistoryPaymentMethods = async (startDate, endDate, locationId) =
                 WHEN type_code = 'CC' THEN 'Card'
             END as name,
             COUNT(*) as value
-        FROM History_tran t
-        INNER JOIN History_header h ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
+        FROM History_tran t WITH (NOLOCK)
+        INNER JOIN History_header h WITH (NOLOCK) ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
         WHERE h.bill_valid != 'X'
           AND t.type_code IN ('MM', 'CC')
     `;
 
     if (locationId && String(locationId).trim() !== '000') {
         const trimmedLocId = String(locationId).trim();
-        query += ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
+        query += ` AND h.loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 
@@ -341,7 +355,7 @@ export const getHistoryCollections = async (startDate, endDate, locationId) => {
     let locFilter = "";
     if (locationId && String(locationId).trim() !== '000') {
         const trimmedLocId = String(locationId).trim();
-        locFilter = ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
+        locFilter = ` AND h.loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 
@@ -366,9 +380,9 @@ export const getHistoryCollections = async (startDate, endDate, locationId) => {
             SUM(ABS(t.tran_amt2)) as total_amount,
             SUM(ABS(t.tran_qty)) as total_qty,
             COUNT(DISTINCT t.bill_no) as bill_count
-        FROM History_tran t
-        INNER JOIN History_header h ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
-        LEFT JOIN cc_mast cc ON LTRIM(RTRIM(t.key_code)) = LTRIM(RTRIM(cc.cc_no)) AND t.type_code = 'CC'
+        FROM History_tran t WITH (NOLOCK)
+        INNER JOIN History_header h WITH (NOLOCK) ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
+        LEFT JOIN cc_mast cc WITH (NOLOCK) ON LTRIM(RTRIM(t.key_code)) = LTRIM(RTRIM(cc.cc_no)) AND t.type_code = 'CC'
         WHERE h.bill_valid != 'X' 
           AND t.type_code IN ('MM', 'CC', 'CS', 'CP', 'CO', 'ST', 'WA', 'R', 'RR', 'VV')
           ${locFilter}

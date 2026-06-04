@@ -7,8 +7,8 @@ const config = {
     user: process.env.DB_USER || 'sa',
     password: process.env.DB_PASSWORD || 'sqladmin',
     server: process.env.DB_SERVER || 'localhost',
-    database: process.env.DB_NAME || 'RESTDB_T',
-    requestTimeout: 60000,
+    database: process.env.DB_NAME || 'RESTDB_KIK',
+    requestTimeout: 120000,
     connectionTimeout: 30000,
     options: {
         encrypt: process.env.DB_ENCRYPT === 'true', // false for local, true for azure

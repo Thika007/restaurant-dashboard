@@ -18,7 +18,7 @@ export const getSalesTrend = async (locationId) => {
 
     if (locationId && String(locationId).trim() !== '000') {
         const trimmedLocId = String(locationId).trim();
-        query += ` AND LTRIM(RTRIM(loc_id)) = @locationId`;
+        query += ` AND loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 
@@ -46,7 +46,7 @@ export const getTopItems = async (locationId) => {
 
     if (locationId && String(locationId).trim() !== '000') {
         const trimmedLocId = String(locationId).trim();
-        query += ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
+        query += ` AND h.loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 
@@ -78,7 +78,7 @@ export const getOrderTypes = async (locationId) => {
 
     if (locationId && String(locationId).trim() !== '000') {
         const trimmedLocId = String(locationId).trim();
-        query += ` AND LTRIM(RTRIM(loc_id)) = @locationId`;
+        query += ` AND loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 
@@ -111,7 +111,7 @@ export const getPaymentMethods = async (locationId) => {
 
     if (locationId && String(locationId).trim() !== '000') {
         const trimmedLocId = String(locationId).trim();
-        query += ` AND LTRIM(RTRIM(h.loc_id)) = @locationId`;
+        query += ` AND h.loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 

@@ -11,7 +11,7 @@ export const getTodayStats = async (locationId) => {
     let locFilter = "";
     if (locationId && String(locationId).trim() !== '000') {
         const trimmedLocId = String(locationId).trim();
-        locFilter = ` AND LTRIM(RTRIM(loc_id)) = @locationId`;
+        locFilter = ` AND loc_id = @locationId`;
         request.input('locationId', sql.VarChar, trimmedLocId);
     }
 
