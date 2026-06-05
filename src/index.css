@@ -331,7 +331,7 @@ body {
 }
 
 .cols-item-report {
-  grid-template-columns: 1.5fr 3.5fr 1fr 1.5fr;
+  grid-template-columns: 1.2fr 2.3fr 2.3fr 0.8fr 1.4fr;
 }
 
 .cols-collections-report {

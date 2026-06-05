@@ -41,19 +41,23 @@ export const getHistory = async (startDate, endDate, locationId, page = 1, pageS
     request.input('pageSize', sql.Int, pageSize);
 
     const dataQuery = `
-        SELECT 
-            h.bill_no as Bill_Id, 
-            t.tran_desc as Item_Name, 
-            t.tran_qty as Qty, 
-            t.unit_price as UnitPrice, 
-            t.tran_amt as LineTotal, 
-            h.bill_date as TransDate
-        FROM History_header h WITH (NOLOCK)
-        INNER JOIN History_tran t WITH (NOLOCK) ON h.bill_no = t.bill_no AND h.loc_id = t.Loc_id AND h.mech_no = t.mech_no AND h.bill_date = t.bill_date
-        ${whereClause}
-        ORDER BY h.bill_date DESC
-        OFFSET @offset ROWS
-        FETCH NEXT @pageSize ROWS ONLY
+        WITH HistoryData AS (
+            SELECT 
+                h.bill_no as Bill_Id, 
+                t.tran_desc as Item_Name, 
+                t.tran_qty as Qty, 
+                t.unit_price as UnitPrice, 
+                t.tran_amt as LineTotal, 
+                h.bill_date as TransDate,
+                ROW_NUMBER() OVER (ORDER BY h.bill_date DESC) as RowNum
+            FROM History_header h WITH (NOLOCK)
+            INNER JOIN History_tran t WITH (NOLOCK) ON h.bill_no = t.bill_no AND h.loc_id = t.Loc_id AND h.mech_no = t.mech_no AND h.bill_date = t.bill_date
+            ${whereClause}
+        )
+        SELECT Bill_Id, Item_Name, Qty, UnitPrice, LineTotal, TransDate
+        FROM HistoryData
+        WHERE RowNum > @offset AND RowNum <= (@offset + @pageSize)
+        ORDER BY RowNum
     `;
 
     const result = await request.query(dataQuery);
@@ -100,7 +104,7 @@ export const getHistoryStats = async (startDate, endDate, locationId) => {
             ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN ABS(Discount_Amt) ELSE 0 END), 0) as total_discount,
             SUM(CASE WHEN bill_valid != 'X' AND ABS(Discount_Amt) > 0 THEN 1 ELSE 0 END) as discount_count,
             SUM(CASE WHEN bill_valid != 'X' THEN 1 ELSE 0 END) as bill_count,
-            ISNULL(SUM(CASE WHEN bill_valid = 'X' THEN bill_amt ELSE 0 END), 0) as cancelled_amount,
+            (SELECT ISNULL(SUM(bill_amt), 0) FROM History_header WITH (NOLOCK) WHERE bill_valid = 'X' AND bill_amt > 0 ${headerLocFilter} ${headerDateFilter}) + (SELECT ISNULL(SUM(ABS(t_sub.tran_amt2)), 0) FROM History_tran t_sub WITH (NOLOCK) INNER JOIN History_header h_sub WITH (NOLOCK) ON t_sub.bill_no = h_sub.bill_no AND t_sub.Loc_id = h_sub.loc_id AND t_sub.mech_no = h_sub.mech_no AND t_sub.bill_date = h_sub.bill_date WHERE h_sub.bill_valid = 'X' AND h_sub.bill_amt = 0 AND t_sub.type_code = 'XX' ${joinedLocFilter.replace(/h\.loc_id/g, 'h_sub.loc_id')} ${joinedDateFilter.replace(/h\.bill_date/g, 'h_sub.bill_date')}) as cancelled_amount,
             SUM(CASE WHEN bill_valid = 'X' THEN 1 ELSE 0 END) as cancelled_count,
             ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN No_Of_Pax ELSE 0 END), 0) as guest_count,
 

@@ -409,12 +409,12 @@ const Dashboard = ({ lang, setLang }) => {
           }
         });
 
-        // Calculate Totals
-        const totalAmount = exportData.reduce((sum, row) => sum + parseFloat(row.Amount || 0), 0);
-        const totalDiscount = exportData.reduce((sum, row) => sum + parseFloat(row.Discount_Amt || 0), 0);
-        const totalTax = exportData.reduce((sum, row) => sum + parseFloat(row.TAX || 0), 0);
-        const totalServiceCharge = exportData.reduce((sum, row) => sum + parseFloat(row.Service_Charge || 0), 0);
-        const totalFinalAmount = exportData.reduce((sum, row) => sum + parseFloat(row.Total_Amount || 0), 0);
+        // Calculate Totals (excluding Combined Bill)
+        const totalAmount = exportData.reduce((sum, row) => row.Transaction_Type === 'Combined Bill' ? sum : sum + parseFloat(row.Amount || 0), 0);
+        const totalDiscount = exportData.reduce((sum, row) => row.Transaction_Type === 'Combined Bill' ? sum : sum + parseFloat(row.Discount_Amt || 0), 0);
+        const totalTax = exportData.reduce((sum, row) => row.Transaction_Type === 'Combined Bill' ? sum : sum + parseFloat(row.TAX || 0), 0);
+        const totalServiceCharge = exportData.reduce((sum, row) => row.Transaction_Type === 'Combined Bill' ? sum : sum + parseFloat(row.Service_Charge || 0), 0);
+        const totalFinalAmount = exportData.reduce((sum, row) => row.Transaction_Type === 'Combined Bill' ? sum : sum + parseFloat(row.Total_Amount || 0), 0);
 
         // Add totals to the end of the document
         yOffset = doc.lastAutoTable.finalY + 10;
@@ -491,6 +491,7 @@ const Dashboard = ({ lang, setLang }) => {
         const tableColumn = Object.values(pdfT.headers);
         const tableRows = exportData.map(row => [
           row.Code,
+          row.ItemName || row.Description,
           row.Description,
           row.Qty,
           parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })
@@ -1175,7 +1176,7 @@ const Dashboard = ({ lang, setLang }) => {
                               <div className="grid-table-cell text-left">
                                 <span className={`px-2 py-1 rounded-lg font-bold text-[10px] uppercase ${row.Transaction_Type === 'Cash' ? 'bg-green-100 text-green-700' :
                                   row.Transaction_Type === 'Cancel bill' ? 'bg-red-100 text-red-700' :
-                                    row.Transaction_Type === 'Incomplete Bill' ? 'bg-orange-100 text-orange-700' :
+                                    row.Transaction_Type === 'Incomplete Bill' || row.Transaction_Type === 'Combined Bill' ? 'bg-orange-100 text-orange-700' :
                                       row.Transaction_Type === 'Void bill' ? 'bg-slate-100 text-slate-700' :
                                         row.Transaction_Type === 'Credit' ? 'bg-purple-100 text-purple-700' :
                                           'bg-blue-100 text-blue-700'
@@ -1203,19 +1204,19 @@ const Dashboard = ({ lang, setLang }) => {
                         <div className="grid-table-footer cols-bill-report">
                           <div className="grid-table-cell text-left font-black text-slate-500">{lang === 'si' ? 'එකතුව' : 'TOTAL'}</div>
                           <div className="grid-table-cell text-right font-black text-slate-700">
-                            {billReportData.reduce((sum, row) => sum + parseFloat(row.Amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {billReportData.reduce((sum, row) => row.Transaction_Type === 'Combined Bill' ? sum : sum + parseFloat(row.Amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </div>
                           <div className="grid-table-cell text-right font-black text-slate-700">
-                            {billReportData.reduce((sum, row) => sum + parseFloat(row.Discount_Amt || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {billReportData.reduce((sum, row) => row.Transaction_Type === 'Combined Bill' ? sum : sum + parseFloat(row.Discount_Amt || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </div>
                           <div className="grid-table-cell text-right font-black text-slate-700">
-                            {billReportData.reduce((sum, row) => sum + parseFloat(row.TAX || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {billReportData.reduce((sum, row) => row.Transaction_Type === 'Combined Bill' ? sum : sum + parseFloat(row.TAX || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </div>
                           <div className="grid-table-cell text-right font-black text-slate-700">
-                            {billReportData.reduce((sum, row) => sum + parseFloat(row.Service_Charge || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {billReportData.reduce((sum, row) => row.Transaction_Type === 'Combined Bill' ? sum : sum + parseFloat(row.Service_Charge || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </div>
                           <div className="grid-table-cell text-right font-black text-dashboard-blue text-sm">
-                            {billReportData.reduce((sum, row) => sum + parseFloat(row.Total_Amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            {billReportData.reduce((sum, row) => row.Transaction_Type === 'Combined Bill' ? sum : sum + parseFloat(row.Total_Amount || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </div>
                           <div className="grid-table-cell"></div>
                           <div className="grid-table-cell"></div>
@@ -1291,6 +1292,7 @@ const Dashboard = ({ lang, setLang }) => {
                           itemReportData.map((row, idx) => (
                             <div key={idx} className="grid-table-row cols-item-report">
                               <div className="grid-table-cell text-left">{row.Code}</div>
+                              <div className="grid-table-cell text-left">{row.ItemName || row.Description}</div>
                               <div className="grid-table-cell text-left">{row.Description}</div>
                               <div className="grid-table-cell text-right">{row.Qty}</div>
                               <div className="grid-table-cell text-right font-bold text-dashboard-blue">{parseFloat(row.Amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
@@ -1311,6 +1313,7 @@ const Dashboard = ({ lang, setLang }) => {
                       {itemReportData.length > 0 && (
                         <div className="grid-table-footer cols-item-report">
                           <div className="grid-table-cell text-left font-black text-slate-500">{lang === 'si' ? 'එකතුව' : 'TOTAL'}</div>
+                          <div className="grid-table-cell"></div>
                           <div className="grid-table-cell"></div>
                           <div className="grid-table-cell text-right font-black text-slate-700">
                             {itemReportData.reduce((sum, row) => sum + parseFloat(row.Qty || 0), 0)}

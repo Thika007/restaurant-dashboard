@@ -47,7 +47,8 @@ export const translations = {
                         staff: "Staff",
                         cancel: "Cancel bill",
                         incomplete: "Incomplete Bill",
-                        wastage: "Wastage"
+                        wastage: "Wastage",
+                        combined: "Combined Bill"
                     },
                     orderType: {
                         label: "Order Type",
@@ -85,6 +86,7 @@ export const translations = {
             itemReport: {
                 headers: {
                     itemCode: "Item Code",
+                    itemName: "Item Name",
                     description: "Description",
                     qty: "Qty",
                     amount: "Amount"
@@ -103,7 +105,8 @@ export const translations = {
                         staff: "Staff",
                         cancel: "Cancel bill",
                         incomplete: "Incomplete Bill",
-                        wastage: "Wastage"
+                        wastage: "Wastage",
+                        combined: "Combined Bill"
                     },
                     orderType: {
                         label: "Order Type",
@@ -277,7 +280,8 @@ export const translations = {
                         staff: "කාර්ය මණ්ඩලය (Staff)",
                         cancel: "අවලංගු කළ බිල්පත් (Cancel bill)",
                         incomplete: "අසම්පූර්ණ බිල්පත් (Incomplete Bill)",
-                        wastage: "අපතේ යාම් (Wastage)"
+                        wastage: "අපතේ යාම් (Wastage)",
+                        combined: "සංයුක්ත බිල්පත් (Combined Bill)"
                     },
                     orderType: {
                         label: "ඇණවුම් වර්ගය",
@@ -315,6 +319,7 @@ export const translations = {
             itemReport: {
                 headers: {
                     itemCode: "අයිතම කේතය",
+                    itemName: "අයිතමයේ නම",
                     description: "විස්තරය",
                     qty: "ප්‍රමාණය",
                     amount: "වටිනාකම"
@@ -333,7 +338,8 @@ export const translations = {
                         staff: "කාර්ය මණ්ඩලය (Staff)",
                         cancel: "අවලංගු කළ බිල්පත් (Cancel bill)",
                         incomplete: "අසම්පූර්ණ බිල්පත් (Incomplete Bill)",
-                        wastage: "අපතේ යාම් (Wastage)"
+                        wastage: "අපතේ යාම් (Wastage)",
+                        combined: "සංයුක්ත බිල්පත් (Combined Bill)"
                     },
                     orderType: {
                         label: "ඇණවුම් වර්ගය",

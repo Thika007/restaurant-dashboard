@@ -8,13 +8,50 @@ export const getBillReport = async (startDate, endDate, filters = {}, page = 1, 
     let query = `
         SELECT 
             h.bill_no as Bill_Id,
-            (ISNULL(h.bill_amt, 0) - ISNULL(h.tax, 0) - ISNULL(h.Service_charge_Amt, 0) + ABS(ISNULL(h.Discount_Amt, 0))) as Amount,
+            CASE 
+                WHEN h.bill_valid = 'X' THEN 
+                    CASE 
+                        WHEN ISNULL(h.bill_amt, 0) = 0 THEN 
+                            ISNULL((
+                                SELECT SUM(ABS(t.tran_amt2)) 
+                                FROM History_tran t WITH (NOLOCK) 
+                                WHERE t.bill_no = h.bill_no 
+                                  AND t.Loc_id = h.loc_id 
+                                  AND t.mech_no = h.mech_no 
+                                  AND t.bill_date = h.bill_date 
+                                  AND t.type_code = 'XX'
+                            ), 0)
+                        ELSE (ISNULL(h.bill_amt, 0) - ISNULL(h.tax, 0) - ISNULL(h.Service_charge_Amt, 0) + ABS(ISNULL(h.Discount_Amt, 0)))
+                    END
+                ELSE (ISNULL(h.bill_amt, 0) - ISNULL(h.tax, 0) - ISNULL(h.Service_charge_Amt, 0) + ABS(ISNULL(h.Discount_Amt, 0)))
+            END as Amount,
             ISNULL(h.Discount_Amt, 0) as Discount_Amt,
             h.tax as TAX,
             h.Service_charge_Amt as Service_Charge,
-            h.bill_amt as Total_Amount,
+            CASE 
+                WHEN h.bill_valid = 'X' THEN 
+                    CASE 
+                        WHEN ISNULL(h.bill_amt, 0) = 0 THEN 
+                            ISNULL((
+                                SELECT SUM(ABS(t.tran_amt2)) 
+                                FROM History_tran t WITH (NOLOCK) 
+                                WHERE t.bill_no = h.bill_no 
+                                  AND t.Loc_id = h.loc_id 
+                                  AND t.mech_no = h.mech_no 
+                                  AND t.bill_date = h.bill_date 
+                                  AND t.type_code = 'XX'
+                            ), 0)
+                        ELSE h.bill_amt 
+                    END
+                ELSE h.bill_amt 
+            END as Total_Amount,
             CASE 
                 WHEN h.bill_valid = 'X' THEN 'Cancel bill'
+                WHEN h.bill_valid = 'Z' AND EXISTS (
+                    SELECT 1 FROM History_tran t_z 
+                    WHERE t_z.bill_no = h.bill_no AND t_z.Loc_id = h.loc_id AND t_z.mech_no = h.mech_no AND t_z.bill_date = h.bill_date 
+                    AND t_z.tran_type = 'Z' AND t_z.tran_valid = 'Z'
+                ) THEN 'Combined Bill'
                 WHEN EXISTS (SELECT 1 FROM History_tran t2 WHERE t2.bill_no = h.bill_no AND t2.Loc_id = h.loc_id AND t2.mech_no = h.mech_no AND t2.bill_date = h.bill_date AND t2.tran_valid = 'Y') THEN 'Incomplete Bill'
                 ELSE (
                     SELECT TOP 1 
@@ -33,7 +70,16 @@ export const getBillReport = async (startDate, endDate, filters = {}, page = 1, 
                         END
                     FROM History_tran t 
                     LEFT JOIN cc_mast cc ON LTRIM(RTRIM(t.key_code)) = LTRIM(RTRIM(cc.cc_no))
-                    WHERE t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date AND t.tran_amt = h.bill_amt 
+                    WHERE t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date 
+                    AND (
+                        ABS(t.tran_amt) = ABS(h.bill_amt) 
+                        OR ABS(t.tran_amt2) = ABS(h.bill_amt)
+                        OR t.line_no = (
+                            SELECT MAX(t_sub.line_no) 
+                            FROM History_tran t_sub 
+                            WHERE t_sub.bill_no = h.bill_no AND t_sub.Loc_id = h.loc_id AND t_sub.mech_no = h.mech_no AND t_sub.bill_date = h.bill_date
+                        )
+                    )
                     AND t.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'RR', 'CO', 'VV', 'XX', 'ST', 'WA')
                     ORDER BY CASE 
                         WHEN t.type_code IN ('MM', 'CC', 'CS', 'CP', 'CO', 'ST') THEN 1 
@@ -43,6 +89,11 @@ export const getBillReport = async (startDate, endDate, filters = {}, page = 1, 
             END as Transaction_Type,
             CASE 
                 WHEN h.bill_valid = 'X' THEN 'X'
+                WHEN h.bill_valid = 'Z' AND EXISTS (
+                    SELECT 1 FROM History_tran t_z 
+                    WHERE t_z.bill_no = h.bill_no AND t_z.Loc_id = h.loc_id AND t_z.mech_no = h.mech_no AND t_z.bill_date = h.bill_date 
+                    AND t_z.tran_type = 'Z' AND t_z.tran_valid = 'Z'
+                ) THEN 'ZZ'
                 WHEN EXISTS (SELECT 1 FROM History_tran t2 WHERE t2.bill_no = h.bill_no AND t2.Loc_id = h.loc_id AND t2.mech_no = h.mech_no AND t2.bill_date = h.bill_date AND t2.tran_valid = 'Y') THEN 'Y'
                 ELSE (
                     SELECT TOP 1 
@@ -51,7 +102,17 @@ export const getBillReport = async (startDate, endDate, filters = {}, page = 1, 
                             ELSE t3.type_code 
                         END
                     FROM History_tran t3 
-                    WHERE t3.bill_no = h.bill_no AND t3.Loc_id = h.loc_id AND t3.mech_no = h.mech_no AND t3.bill_date = h.bill_date AND t3.tran_amt = h.bill_amt AND t3.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'RR', 'CO', 'VV', 'XX', 'ST', 'WA')
+                    WHERE t3.bill_no = h.bill_no AND t3.Loc_id = h.loc_id AND t3.mech_no = h.mech_no AND t3.bill_date = h.bill_date 
+                    AND (
+                        ABS(t3.tran_amt) = ABS(h.bill_amt) 
+                        OR ABS(t3.tran_amt2) = ABS(h.bill_amt)
+                        OR t3.line_no = (
+                            SELECT MAX(t_sub.line_no) 
+                            FROM History_tran t_sub 
+                            WHERE t_sub.bill_no = h.bill_no AND t_sub.Loc_id = h.loc_id AND t_sub.mech_no = h.mech_no AND t_sub.bill_date = h.bill_date
+                        )
+                    )
+                    AND t3.type_code IN ('MM', 'CC', 'CS', 'CP', 'R', 'RR', 'CO', 'VV', 'XX', 'ST', 'WA')
                     ORDER BY CASE 
                         WHEN t3.type_code IN ('MM', 'CC', 'CS', 'CP', 'CO', 'ST') THEN 1 
                         ELSE 2 
@@ -117,7 +178,8 @@ export const getBillReport = async (startDate, endDate, filters = {}, page = 1, 
             staff: ['ST'],
             cancel: ['X', 'XX'],
             incomplete: ['Y'],
-            wastage: ['WA']
+            wastage: ['WA'],
+            combined: ['ZZ']
         };
 
         const dbTxnTypes = [];
@@ -188,13 +250,19 @@ export const getBillReport = async (startDate, endDate, filters = {}, page = 1, 
     request.input('offset', sql.Int, offset);
     request.input('pageSize', sql.Int, pageSize);
 
+    const orderExpr = sortClause.replace(/^\s*ORDER BY\s+/i, '');
     const dataQuery = `
         WITH BillData AS (
             ${query}
+        ),
+        PagedBillData AS (
+            SELECT *, ROW_NUMBER() OVER (ORDER BY ${orderExpr}) as RowNum
+            FROM BillData
+            WHERE 1=1 ${finalFilterClause}
         )
-        SELECT * FROM BillData WHERE 1=1 ${finalFilterClause}
-        ${sortClause}
-        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
+        SELECT * FROM PagedBillData
+        WHERE RowNum > @offset AND RowNum <= (@offset + @pageSize)
+        ORDER BY RowNum
     `;
 
     const result = await request.query(dataQuery);
@@ -208,16 +276,17 @@ export const getItemReport = async (startDate, endDate, filters = {}, page = 1, 
     let query = `
         SELECT 
             t.tran_code as Code,
+            ISNULL(MAX(i.descr), t.tran_desc) as ItemName,
             t.tran_desc as Description,
             SUM(
                 CASE 
-                    WHEN t.type_code IN ('VV', 'WA', 'CO', 'ST') AND t.unit_price > 0 THEN ABS(t.tran_amt2) / t.unit_price 
+                    WHEN t.type_code IN ('VV', 'WA', 'CO', 'ST', 'XX') AND t.unit_price > 0 THEN ABS(t.tran_amt2) / t.unit_price 
                     ELSE ISNULL(t.tran_qty, 0) 
                 END
             ) as Qty,
             SUM(
                 CASE 
-                    WHEN t.type_code IN ('VV', 'WA', 'CO', 'ST', 'R', 'RR', 'RS') THEN ABS(t.tran_amt2)
+                    WHEN t.type_code IN ('VV', 'WA', 'CO', 'ST', 'R', 'RR', 'RS', 'XX') THEN ABS(t.tran_amt2)
                     ELSE ISNULL(t.tran_amt, 0)
                 END
             ) as Amount,
@@ -226,7 +295,7 @@ export const getItemReport = async (startDate, endDate, filters = {}, page = 1, 
         FROM History_tran t
         INNER JOIN History_header h ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date
         LEFT JOIN Item_mast i ON t.tran_code = i.barcode
-        WHERE t.type_code IN ('RS', 'RR', 'VV', 'WA', 'CO', 'ST', 'S')
+        WHERE t.type_code IN ('RS', 'RR', 'VV', 'WA', 'CO', 'ST', 'S', 'XX')
     `;
 
     if (startDate && endDate) {
@@ -274,7 +343,8 @@ export const getItemReport = async (startDate, endDate, filters = {}, page = 1, 
             staff: ['ST'],
             cancel: ['X', 'XX'],
             incomplete: ['Y'],
-            wastage: ['WA']
+            wastage: ['WA'],
+            combined: ['ZZ']
         };
 
         const directFilterMap = ['void', 'refund', 'wastage'];
@@ -400,13 +470,18 @@ export const getItemReport = async (startDate, endDate, filters = {}, page = 1, 
     request.input('offset', sql.Int, offset);
     request.input('pageSize', sql.Int, pageSize);
 
+    const orderExpr = sortClause.replace(/^\s*ORDER BY\s+/i, '');
     const dataQuery = `
         WITH ItemData AS (
             ${query}
+        ),
+        PagedItemData AS (
+            SELECT *, ROW_NUMBER() OVER (ORDER BY ${orderExpr}) as RowNum
+            FROM ItemData
         )
-        SELECT * FROM ItemData
-        ${sortClause}
-        OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY
+        SELECT * FROM PagedItemData
+        WHERE RowNum > @offset AND RowNum <= (@offset + @pageSize)
+        ORDER BY RowNum
     `;
 
     const result = await request.query(dataQuery);

@@ -24,7 +24,7 @@ export const getTodayStats = async (locationId) => {
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN ABS(Discount_Amt) ELSE 0 END), 0) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as total_discount,
             (SELECT COUNT(DISTINCT CASE WHEN bill_valid != 'X' AND ABS(Discount_Amt) > 0 THEN bill_no END) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as discount_count,
             (SELECT COUNT(CASE WHEN bill_valid != 'X' THEN bill_no END) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as bill_count,
-            (SELECT ISNULL(SUM(CASE WHEN bill_valid = 'X' THEN bill_amt ELSE 0 END), 0) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as cancelled_amount,
+            (SELECT ISNULL(SUM(bill_amt), 0) FROM bill_header WITH (NOLOCK) WHERE bill_valid = 'X' AND bill_amt > 0 AND CAST(bill_date AS DATE) = @today ${locFilter}) + (SELECT ISNULL(SUM(ABS(t.tran_amt2)), 0) FROM bill_tran t WITH (NOLOCK) JOIN bill_header h WITH (NOLOCK) ON t.bill_no = h.bill_no AND t.Loc_id = h.loc_id AND t.mech_no = h.mech_no AND t.bill_date = h.bill_date WHERE h.bill_valid = 'X' AND h.bill_amt = 0 AND t.type_code = 'XX' AND CAST(h.bill_date AS DATE) = @today ${locFilter.replace('loc_id', 'h.loc_id')}) as cancelled_amount,
             (SELECT COUNT(CASE WHEN bill_valid = 'X' THEN 1 END) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as cancelled_count,
             (SELECT ISNULL(SUM(CASE WHEN bill_valid != 'X' THEN No_Of_Pax ELSE 0 END), 0) FROM bill_header WHERE CAST(bill_date AS DATE) = @today ${locFilter}) as guest_count,
             
